@@ -1,102 +1,199 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import Link from 'next/link';
+import { ArrowRight, TrendingUp, Users, Target, Star, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+
+export default function LandingPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const handleAssessmentClick = () => {
+    if (user) {
+      router.push('/assessment');
+    } else {
+      router.push('/login?redirect=/assessment');
+    }
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-900/20 to-indigo-900/40" />
+          <div className="absolute top-0 left-0 w-full h-full">
+            {/* Mountain Silhouette */}
+            <div className="absolute bottom-0 left-0 w-full h-1/3">
+              <svg viewBox="0 0 1200 400" className="w-full h-full">
+                <path
+                  d="M0,400 L200,300 L400,250 L600,200 L800,150 L1000,100 L1200,50 L1200,400 Z"
+                  fill="url(#mountainGradient)"
+                  className="animate-pulse"
+                />
+                <defs>
+                  <linearGradient id="mountainGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#1e293b" />
+                    <stop offset="100%" stopColor="#0f172a" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+        {/* Hero Content */}
+        <div className="relative z-10 text-center px-4 max-w-6xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+              Most People Live at{' '}
+              <span className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent animate-pulse">
+                30%
+              </span>{' '}
+              of Their God-Given Potential
+            </h1>
+            <p className="text-xl md:text-2xl text-blue-200 mb-8">
+              What&apos;s Your Percentage?
+            </p>
+            <div className="text-4xl md:text-6xl font-bold text-white mb-8">
+              <span className="animate-ping text-yellow-400">15%</span> •{' '}
+              <span className="animate-ping text-orange-400" style={{ animationDelay: '0.5s' }}>28%</span> •{' '}
+              <span className="animate-ping text-red-400" style={{ animationDelay: '1s' }}>42%</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleAssessmentClick}
+            className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-xl rounded-full hover:from-yellow-300 hover:to-orange-400 transform hover:scale-105 transition-all duration-300 shadow-2xl"
+          >
+            Discover Your Gap
+            <ArrowRight className="ml-2 h-6 w-6" />
+          </button>
+        </div>
+      </section>
+
+      {/* Social Proof Section */}
+      <section className="py-20 px-4 bg-white/5 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-4xl font-bold text-white mb-12">
+            Join Thousands Already Ascending
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
+              <Users className="h-16 w-16 text-yellow-400 mx-auto mb-4" />
+              <div className="text-4xl font-bold text-white mb-2">2,847</div>
+              <div className="text-blue-200">Lives Transformed</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
+              <Target className="h-16 w-16 text-orange-400 mx-auto mb-4" />
+              <div className="text-4xl font-bold text-white mb-2">156,420</div>
+              <div className="text-blue-200">Total Streaks</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
+              <Star className="h-16 w-16 text-red-400 mx-auto mb-4" />
+              <div className="text-4xl font-bold text-white mb-2">89,234</div>
+              <div className="text-blue-200">Prayers Answered</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold text-white text-center mb-16">
+            The Complete Ascension System
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                title: "Life Audit Assessment",
+                description: "15-minute conversation revealing your current standing in life&apos;s seven dimensions",
+                icon: "🎯",
+                color: "from-blue-500 to-cyan-500"
+              },
+              {
+                title: "Daily Ascension Protocol",
+                description: "Personalized morning, midday, and evening routines that stack habits for maximum impact",
+                icon: "🌅",
+                color: "from-yellow-500 to-orange-500"
+              },
+              {
+                title: "Accountability Partnership",
+                description: "AI-matched accountability partners who complement your strengths and support your growth",
+                icon: "🤝",
+                color: "from-green-500 to-emerald-500"
+              },
+              {
+                title: "AI Coaching Engine",
+                description: "Personalized guidance that adapts to your progress and provides real-time support",
+                icon: "🧠",
+                color: "from-purple-500 to-pink-500"
+              },
+              {
+                title: "Community Hub",
+                description: "Connect with like-minded individuals on similar growth journeys",
+                icon: "🔥",
+                color: "from-red-500 to-pink-500"
+              },
+              {
+                title: "Progress Analytics",
+                description: "Track your growth across all dimensions with detailed insights and projections",
+                icon: "📊",
+                color: "from-indigo-500 to-blue-500"
+              }
+            ].map((feature, index) => (
+              <div
+                key={index}
+                className="group bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:bg-white/10 transition-all duration-300 transform hover:scale-105"
+              >
+                <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${feature.color} flex items-center justify-center text-3xl mb-6`}>
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold text-white mb-4">{feature.title}</h3>
+                <p className="text-blue-200 leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4 bg-gradient-to-r from-yellow-400/10 to-orange-500/10">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl font-bold text-white mb-6">
+            Ready to Discover Your True Potential?
+          </h2>
+          <p className="text-xl text-blue-200 mb-8">
+            Take the 15-minute Life Audit and see exactly where you stand in life&apos;s seven dimensions
+          </p>
+          <button
+            onClick={handleAssessmentClick}
+            className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-xl rounded-full hover:from-yellow-300 hover:to-orange-400 transform hover:scale-105 transition-all duration-300 shadow-2xl"
+          >
+            Start Your Life Audit Now
+            <ArrowRight className="ml-2 h-6 w-6" />
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-4 border-t border-white/20">
+        <div className="max-w-6xl mx-auto text-center">
+          <div className="text-2xl font-bold text-white mb-4">ASCEND</div>
+          <p className="text-blue-200 mb-6">
+            Unlock your God-given potential through intentional growth and spiritual development
+          </p>
+          <div className="flex justify-center space-x-6 text-blue-200">
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="/support" className="hover:text-white transition-colors">Support</Link>
+          </div>
+        </div>
       </footer>
     </div>
   );
