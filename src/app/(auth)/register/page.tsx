@@ -66,6 +66,49 @@ export default function RegisterPage() {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Create demo user data
+      const demoUser = {
+        id: 'demo-user-123',
+        email: 'demo@ascend.app',
+        full_name: 'Demo User',
+        avatar_url: undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        subscription_tier: 'premium' as const,
+        onboarding_completed: true,
+        streaks: {
+          current: 7,
+          longest: 21,
+          lastActivity: new Date().toISOString()
+        },
+        goals: ['Build Consistent Morning Routine', 'Improve Physical Fitness', 'Deepen Spiritual Connection'],
+        totalScore: 78,
+        physicalScore: 82,
+        mentalScore: 75,
+        spiritualScore: 85,
+        relationalScore: 70,
+        financialScore: 65,
+        dailyCheckins: [],
+        progressHistory: []
+      };
+
+      // Store demo user data
+      localStorage.setItem('ascend_auth_token', 'demo-token-123');
+      localStorage.setItem('ascend_user_data', JSON.stringify(demoUser));
+      
+      // Redirect to dashboard
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Demo login failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const isStepValid = () => {
     switch (step) {
       case 1:
@@ -441,6 +484,28 @@ export default function RegisterPage() {
               </div>
             </div>
           </form>
+        </div>
+
+        {/* Demo Account Section */}
+        <div className="mt-8 pt-6 border-t border-white/20">
+          <div className="text-center mb-4">
+            <p className="text-blue-200 text-sm mb-2">Want to explore ASCEND first?</p>
+            <p className="text-blue-300 text-xs">Try our demo account to see all features before registering</p>
+          </div>
+          
+          <button
+            onClick={handleDemoLogin}
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-black py-3 px-4 rounded-lg hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none font-semibold flex items-center justify-center space-x-2"
+          >
+            <span>🚀 Try Demo Account</span>
+          </button>
+          
+          <div className="mt-3 text-center">
+            <p className="text-yellow-200 text-xs">
+              Demo includes: Full Life Audit, AI Coaching, Workout Plans, Nutrition Guidance & More!
+            </p>
+          </div>
         </div>
 
         {/* Footer */}
