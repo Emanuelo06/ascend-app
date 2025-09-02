@@ -17,6 +17,47 @@ export default function LandingPage() {
     }
   };
 
+  const handleSkipAuth = () => {
+    try {
+      // Create a test user and bypass authentication completely
+      const testUser = {
+        id: 'test-user-123',
+        email: 'test@ascend.app',
+        full_name: 'Test User',
+        avatar_url: undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        subscription_tier: 'premium',
+        onboarding_completed: true,
+        streaks: {
+          current: 0,
+          longest: 0,
+          lastActivity: new Date().toISOString()
+        },
+        goals: [],
+        totalScore: 0,
+        physicalScore: 0,
+        mentalScore: 0,
+        spiritualScore: 0,
+        relationalScore: 0,
+        financialScore: 0,
+        dailyCheckins: [],
+        progressHistory: []
+      };
+
+      // Store test user data
+      localStorage.setItem('ascend_auth_token', 'test-token-123');
+      localStorage.setItem('ascend_user_data', JSON.stringify(testUser));
+      
+      // Redirect to dashboard
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Skip auth failed:', error);
+      // Fallback: just redirect to dashboard
+      router.push('/dashboard');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
       {/* Hero Section */}
@@ -178,6 +219,27 @@ export default function LandingPage() {
             Start Your Life Audit Now
             <ArrowRight className="ml-2 h-6 w-6" />
           </button>
+
+          {/* Skip Auth Button - For Testing */}
+          <div className="mt-8 pt-6 border-t border-white/20">
+            <div className="text-center mb-4">
+              <p className="text-red-200 text-sm mb-2">🚨 Testing Mode</p>
+              <p className="text-red-300 text-xs">Skip authentication to test all features immediately</p>
+            </div>
+            
+            <button
+              onClick={() => handleSkipAuth()}
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-red-400 to-pink-500 text-white font-semibold rounded-lg hover:from-red-500 hover:to-pink-600 transform hover:scale-105 transition-all duration-300 shadow-xl"
+            >
+              <span>⚡ Skip Auth & Test App</span>
+            </button>
+            
+            <div className="mt-3 text-center">
+              <p className="text-red-200 text-xs">
+                This will bypass all authentication and take you directly to the dashboard
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 

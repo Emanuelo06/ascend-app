@@ -93,6 +93,44 @@ function LoginForm() {
     }
   };
 
+  const handleSkipAuth = () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      // Simulate successful authentication for testing
+      localStorage.setItem('ascend_auth_token', 'skip-auth-token');
+      localStorage.setItem('ascend_user_data', JSON.stringify({
+        id: 'skip-user-123',
+        email: 'skip@example.com',
+        full_name: 'Skip User',
+        avatar_url: undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        subscription_tier: 'premium' as const,
+        onboarding_completed: true,
+        streaks: {
+          current: 0,
+          longest: 0,
+          lastActivity: new Date().toISOString()
+        },
+        goals: [],
+        totalScore: 0,
+        physicalScore: 0,
+        mentalScore: 0,
+        spiritualScore: 0,
+        relationalScore: 0,
+        financialScore: 0,
+        dailyCheckins: [],
+        progressHistory: []
+      }));
+      router.push('/dashboard');
+    } catch (error) {
+      setError('Failed to skip authentication');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Motivational quote of the day
   const quoteOfTheDay = {
     text: "The journey of a thousand miles begins with one step.",
@@ -221,6 +259,28 @@ function LoginForm() {
               )}
             </button>
           </form>
+
+          {/* Skip Auth Section - For Testing */}
+          <div className="mt-6 pt-6 border-t border-white/20">
+            <div className="text-center mb-4">
+              <p className="text-red-200 text-sm mb-2">🚨 Testing Mode</p>
+              <p className="text-red-300 text-xs">Skip authentication to test all features immediately</p>
+            </div>
+            
+            <button
+              onClick={() => handleSkipAuth()}
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-red-400 to-pink-500 text-white py-3 px-4 rounded-lg hover:from-red-500 hover:to-pink-600 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none font-semibold flex items-center justify-center space-x-2"
+            >
+              <span>⚡ Skip Auth & Test App</span>
+            </button>
+            
+            <div className="mt-3 text-center">
+              <p className="text-red-200 text-xs">
+                This will bypass all authentication and take you directly to the dashboard
+              </p>
+            </div>
+          </div>
 
           {/* Demo Account Section */}
           <div className="mt-8 pt-6 border-t border-white/20">

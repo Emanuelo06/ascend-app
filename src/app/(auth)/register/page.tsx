@@ -109,6 +109,44 @@ export default function RegisterPage() {
     }
   };
 
+  const handleSkipAuth = () => {
+    setIsLoading(true);
+    try {
+      // Simulate successful authentication for testing
+      const demoUser = {
+        id: 'skip-auth-user-123',
+        email: 'skip@ascend.app',
+        full_name: 'Skip Auth User',
+        avatar_url: undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        subscription_tier: 'premium' as const,
+        onboarding_completed: true,
+        streaks: {
+          current: 7,
+          longest: 21,
+          lastActivity: new Date().toISOString()
+        },
+        goals: ['Build Consistent Morning Routine', 'Improve Physical Fitness', 'Deepen Spiritual Connection'],
+        totalScore: 78,
+        physicalScore: 82,
+        mentalScore: 75,
+        spiritualScore: 85,
+        relationalScore: 70,
+        financialScore: 65,
+        dailyCheckins: [],
+        progressHistory: []
+      };
+      localStorage.setItem('ascend_auth_token', 'skip-auth-token-123');
+      localStorage.setItem('ascend_user_data', JSON.stringify(demoUser));
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Skip auth failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const isStepValid = () => {
     switch (step) {
       case 1:
@@ -484,6 +522,28 @@ export default function RegisterPage() {
               </div>
             </div>
           </form>
+        </div>
+
+        {/* Skip Auth Section - For Testing */}
+        <div className="mt-6 pt-6 border-t border-white/20">
+          <div className="text-center mb-4">
+            <p className="text-red-200 text-sm mb-2">🚨 Testing Mode</p>
+            <p className="text-red-300 text-xs">Skip authentication to test all features immediately</p>
+          </div>
+          
+          <button
+            onClick={() => handleSkipAuth()}
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-red-400 to-pink-500 text-white py-3 px-4 rounded-lg hover:from-red-500 hover:to-pink-600 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none font-semibold flex items-center justify-center space-x-2"
+          >
+            <span>⚡ Skip Auth & Test App</span>
+          </button>
+          
+          <div className="mt-3 text-center">
+            <p className="text-red-200 text-xs">
+              This will bypass all authentication and take you directly to the dashboard
+            </p>
+          </div>
         </div>
 
         {/* Demo Account Section */}
