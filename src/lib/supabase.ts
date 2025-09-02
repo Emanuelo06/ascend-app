@@ -1,18 +1,49 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { config } from './config';
 
-// Enhanced Supabase Client with proper error handling
-export const supabase = createClient(
-  config.supabase.url!,
-  config.supabase.anonKey!,
-  {
+// Lazy-loaded Supabase Client to avoid build-time errors
+let supabaseInstance: SupabaseClient | null = null;
+
+function createSupabaseClient(): SupabaseClient {
+  // Check if we're in a browser environment
+  if (typeof window === 'undefined') {
+    // Server-side: check if environment variables are available
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      // During build time, return a mock client to prevent build failures
+      return createClient('https://placeholder.supabase.co', 'placeholder-key');
+    }
+  }
+
+  const url = config.supabase.url;
+  const anonKey = config.supabase.anonKey;
+
+  if (!url || !anonKey) {
+    throw new Error('Supabase URL and anon key are required. Please check your environment variables.');
+  }
+
+  return createClient(url, anonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true
     }
+  });
+}
+
+export function getSupabaseClient(): SupabaseClient {
+  if (!supabaseInstance) {
+    supabaseInstance = createSupabaseClient();
   }
-);
+  return supabaseInstance;
+}
+
+// Export the client getter for backward compatibility
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(target, prop) {
+    const client = getSupabaseClient();
+    return client[prop as keyof SupabaseClient];
+  }
+});
 
 // Database Types
 export interface UserProfile {
@@ -85,7 +116,7 @@ export class DatabaseService {
   private supabase: SupabaseClient;
 
   private constructor() {
-    this.supabase = supabase;
+    this.supabase = getSupabaseClient();
   }
 
   public static getInstance(): DatabaseService {

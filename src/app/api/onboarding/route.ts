@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { aiAssessmentEngine } from '@/lib/ai-assessment-engine';
-import { databaseService } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 import { AssessmentQuestion } from '@/types/onboarding';
+
+// Lazy load database service to prevent build-time issues
+let databaseService: any = null;
+
+async function getDatabaseService() {
+  if (!databaseService) {
+    const { DatabaseService } = await import('@/lib/supabase');
+    databaseService = DatabaseService.getInstance();
+  }
+  return databaseService;
+}
 
 // Onboarding API - Fully Automated Assessment and Plan Creation Without Human Intervention
 export async function POST(request: NextRequest) {
@@ -53,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     // Save to database for persistence
     try {
-      const savedAssessment = await databaseService.saveLifeAuditAssessment({
+      const savedAssessment = await getDatabaseService().saveLifeAuditAssessment({
         user_id: userId,
         completed_at: new Date().toISOString(),
         questions,
@@ -103,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     if (userId) {
       // Get user's assessment from database
-      const assessment = await databaseService.getLifeAuditAssessment(userId);
+      const assessment = await getDatabaseService().getLifeAuditAssessment(userId);
       
       if (assessment) {
         return NextResponse.json({
