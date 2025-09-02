@@ -22,7 +22,6 @@ import {
   Clock,
   Award,
   BookOpenCheck,
-  Prayer,
   Cross,
   ChevronRight,
   ChevronLeft
@@ -161,7 +160,7 @@ export default function OnboardingPage() {
       id: 3,
       title: 'Spiritual Foundation',
       description: 'Establish your spiritual foundation and preferences',
-      icon: <Prayer className="w-6 h-6" />,
+      icon: <Heart className="w-6 h-6" />,
       completed: currentStep > 3
     },
     {
@@ -617,7 +616,7 @@ export default function OnboardingPage() {
 
                 <div className="space-y-4">
                   <h4 className="text-lg font-semibold text-purple-400 flex items-center">
-                    <Prayer className="w-5 h-5 mr-2" />
+                                         <Heart className="w-5 h-5 mr-2" />
                     Spiritual Setup
                   </h4>
                   <div className="space-y-2">

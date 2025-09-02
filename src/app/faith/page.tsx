@@ -5,18 +5,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
-  BookOpen, 
-  Heart, 
-  Target, 
+    BookOpen,
+  Heart,
+  Target,
   TrendingUp,
   Calendar,
   Clock,
   Star,
   Lightbulb,
   Users,
-  Prayer,
   Cross,
-  Bible,
   Church,
   Music,
   RefreshCw
@@ -87,7 +85,7 @@ export default function FaithPage() {
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'prayer': return <Prayer className="h-5 w-5" />;
+      case 'prayer': return <Heart className="h-5 w-5" />;
       case 'reading': return <BookOpen className="h-5 w-5" />;
       case 'meditation': return <Target className="h-5 w-5" />;
       case 'worship': return <Music className="h-5 w-5" />;
@@ -188,7 +186,7 @@ export default function FaithPage() {
               <div className="bg-gradient-to-r from-purple-400/20 to-blue-500/20 backdrop-blur-sm rounded-2xl p-8 border border-purple-400/30">
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-500/20 rounded-full mb-4">
-                    <Bible className="h-8 w-8 text-purple-400" />
+                                         <BookOpen className="h-8 w-8 text-purple-400" />
                   </div>
                   <h2 className="text-2xl font-bold text-white mb-2">Today&apos;s Verse</h2>
                   <p className="text-blue-200">Personalized for your spiritual journey</p>
@@ -271,7 +269,7 @@ export default function FaithPage() {
                 <div key={category} className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all cursor-pointer">
                   <div className="text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-500/20 rounded-full mb-4">
-                      <Bible className="h-8 w-8 text-purple-400" />
+                      <BookOpen className="h-8 w-8 text-purple-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-white capitalize mb-2">
                       {category.replace('_', ' ')}
@@ -394,7 +392,7 @@ export default function FaithPage() {
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-500/20 rounded-full mb-4">
-                    <Prayer className="h-8 w-8 text-purple-400" />
+                                         <Heart className="h-8 w-8 text-purple-400" />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">Prayer Journal</h3>
                   <p className="text-blue-200">Track your prayers and see how God answers</p>

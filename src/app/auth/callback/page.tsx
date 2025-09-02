@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { authService } from '@/lib/auth-service';
+import { supabase } from '@/lib/supabase';
 
 // Wrapper component that uses useSearchParams
 function AuthCallbackForm() {
@@ -21,7 +21,7 @@ function AuthCallbackForm() {
       setMessage('Processing authentication...');
 
       // Get the current session after OAuth redirect
-      const { data: { session }, error } = await authService.supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
 
       if (error) {
         console.error('Auth callback error:', error);
@@ -115,7 +115,7 @@ function AuthCallbackForm() {
                 Back to Login
               </button>
               <button
-                onClick={() => window.location.reload()}
+                                 onClick={() => router.refresh()}
                 className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Try Again
