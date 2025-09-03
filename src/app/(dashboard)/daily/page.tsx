@@ -1,485 +1,674 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { MOMENTS, HABIT_TEMPLATES } from '@/data/habit-templates';
+import { habitEngine } from '@/lib/habit-engine';
+import { habitDatabaseService } from '@/lib/habit-database-service';
+import { Habit, HabitOccurrence, HabitCheckin, Moment } from '@/types';
 import { 
-  CalendarIcon, 
-  ArrowLeftIcon, 
   CheckCircle, 
-  Circle, 
   Clock, 
-  TrendingUp, 
-  Target, 
-  Heart,
-  Brain,
-  Zap,
-  BookOpen,
-  Sun,
-  Moon,
-  Star,
-  Trophy,
-  BarChart3,
-  Lightbulb,
-  RefreshCw
+  Play, 
+  Pause, 
+  SkipForward, 
+  Target,
+  TrendingUp,
+  Calendar,
+  Sparkles,
+  Plus,
+  AlertCircle,
+  MinusCircle,
+  XCircle,
+  Edit3,
+  Trash2
 } from 'lucide-react';
-import { MORNING_ROUTINE_TEMPLATE, EVENING_REFLECTION_TEMPLATE } from '@/constants';
-
-interface DailyProgress {
-  morning_completed: boolean;
-  evening_completed: boolean;
-  streak_count: number;
-  energy_level: number;
-  mood_rating: number;
-  gratitude_entries: string[];
-  daily_wins: string[];
-  growth_areas: string[];
-  tomorrow_intentions: string[];
-}
+import CreateHabitModal from '@/components/CreateHabitModal';
 
 export default function DailyPage() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [dailyProgress, setDailyProgress] = useState<DailyProgress>({
-    morning_completed: false,
-    evening_completed: false,
-    streak_count: 7,
-    energy_level: 8,
-    mood_rating: 8,
-    gratitude_entries: ['Family support', 'Good health', 'New opportunities'],
-    daily_wins: ['Completed morning routine', 'Had a productive meeting'],
-    growth_areas: ['Need more patience', 'Could exercise more'],
-    tomorrow_intentions: ['Start with prayer', 'Exercise before work']
-  });
-
-  const [morningRoutine, setMorningRoutine] = useState(MORNING_ROUTINE_TEMPLATE);
-  const [eveningReflection, setEveningReflection] = useState(EVENING_REFLECTION_TEMPLATE);
-  const [activeTab, setActiveTab] = useState<'morning' | 'evening' | 'progress'>('morning');
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [checkins, setCheckins] = useState<HabitCheckin[]>([]);
+  const [currentMoment, setCurrentMoment] = useState<Moment | null>(null);
+  const [showStartAllModal, setShowStartAllModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    // Get current moment
+    const moment = habitEngine.getCurrentMoment();
+    setCurrentMoment(moment);
+    
+    // Load user data
+    loadUserData();
   }, []);
 
-  if (!user) {
-    router.push('/login');
-    return null;
-  }
-
-  const handleRoutineComplete = (id: string, type: 'morning' | 'evening') => {
-    if (type === 'morning') {
-      setMorningRoutine(prev => 
-        prev.map(item => 
-          item.id === id ? { ...item, completed: !item.completed } : item
-        )
-      );
-    } else {
-      setEveningReflection(prev => 
-        prev.map(item => 
-          item.id === id ? { ...item, completed: !item.completed } : item
-        )
-      );
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      
+      // For now, use mock data instead of database connection
+      // This will be replaced with real database calls once the schema is set up
+      const mockHabits: Habit[] = [
+        {
+          id: '1',
+          userId: 'demo-user',
+          title: 'Morning Prayer',
+          purpose: 'Start the day with gratitude and spiritual connection',
+          moment: 'morning',
+          cadence: { type: 'daily' },
+          dose: { unit: 'minutes', target: 10 },
+          window: { start: '07:00', end: '11:00' },
+          difficulty: 2,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: '2',
+          userId: 'demo-user',
+          title: 'Hydration',
+          purpose: 'Stay hydrated throughout the day',
+          moment: 'morning',
+          cadence: { type: 'daily' },
+          dose: { unit: 'liters', target: 2 },
+          window: { start: '06:00', end: '22:00' },
+          difficulty: 1,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: '3',
+          userId: 'demo-user',
+          title: 'Deep Work',
+          purpose: 'Uninterrupted focused work sessions',
+          moment: 'morning',
+          cadence: { type: 'weekdays' },
+          dose: { unit: 'minutes', target: 90 },
+          window: { start: '08:00', end: '12:00' },
+          difficulty: 3,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: '4',
+          userId: 'demo-user',
+          title: 'Mindful Breaks',
+          purpose: 'Take intentional breaks to maintain focus',
+          moment: 'midday',
+          cadence: { type: 'daily' },
+          dose: { unit: 'minutes', target: 5 },
+          window: { start: '12:00', end: '14:00' },
+          difficulty: 1,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: '5',
+          userId: 'demo-user',
+          title: 'Evening Reflection',
+          purpose: 'End the day with gratitude and prayer',
+          moment: 'evening',
+          cadence: { type: 'daily' },
+          dose: { unit: 'minutes', target: 5 },
+          window: { start: '20:00', end: '22:00' },
+          difficulty: 1,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ];
+      
+      const mockCheckins: HabitCheckin[] = [
+        {
+          id: '1',
+          userId: 'demo-user',
+          habitId: '1',
+          date: new Date().toISOString().split('T')[0],
+          status: 'done',
+          effort: 2,
+          doseActual: 10,
+          note: 'Felt very connected today',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: '2',
+          userId: 'demo-user',
+          habitId: '2',
+          date: new Date().toISOString().split('T')[0],
+          status: 'partial',
+          effort: 1,
+          doseActual: 1.5,
+          note: 'Need to drink more water',
+          createdAt: new Date().toISOString()
+        }
+      ];
+      
+      setHabits(mockHabits);
+      setCheckins(mockCheckins);
+      
+      // TODO: Replace with real database calls once schema is set up
+      // const [userHabits, userCheckins] = await Promise.all([
+      //   habitDatabaseService.getHabitsByUser(demoUserId),
+      //   habitDatabaseService.getCheckinsByUser(demoUserId, new Date().toISOString().split('T')[0])
+      // ]);
+      
+    } catch (err) {
+      console.error('Error loading user data:', err);
+      setError('Failed to load habits. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const morningCompleted = morningRoutine.filter(item => item.completed).length;
-  const eveningCompleted = eveningReflection.filter(item => item.completed).length;
-  const totalMorningItems = morningRoutine.length;
-  const totalEveningItems = eveningReflection.length;
+  const getHabitsForMoment = (momentName: string) => {
+    return habits.filter(habit => habit.moment === momentName);
+  };
+
+  const getCheckinForHabit = (habitId: string, date: string) => {
+    return checkins.find(checkin => 
+      checkin.habitId === habitId && checkin.date === date
+    );
+  };
+
+  const getProgressForMoment = (momentName: string) => {
+    const momentHabits = getHabitsForMoment(momentName);
+    const today = new Date().toISOString().split('T')[0];
+    
+    const completed = momentHabits.filter(habit => {
+      const checkin = getCheckinForHabit(habit.id, today);
+      return checkin && checkin.status !== 'skipped';
+    }).length;
+    
+    return { completed, total: momentHabits.length };
+  };
+
+  const handleCheckin = async (habitId: string, status: 'done' | 'partial' | 'skipped', effort: number = 2) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const existingCheckin = checkins.find(c => c.habitId === habitId && c.date === today);
+      
+      if (existingCheckin) {
+        // Update existing checkin in local state
+        setCheckins(prev => prev.map(c => 
+          c.id === existingCheckin.id 
+            ? { ...c, status, effort: effort as 0 | 1 | 2 | 3, editedAt: new Date().toISOString() }
+            : c
+        ));
+      } else {
+        // Create new checkin in local state
+        const newCheckin: HabitCheckin = {
+          id: `${habitId}-${today}`,
+          userId: 'demo-user',
+          habitId,
+          date: today,
+          status,
+          effort: effort as 0 | 1 | 2 | 3,
+          createdAt: new Date().toISOString()
+        };
+        setCheckins(prev => [...prev, newCheckin]);
+      }
+      
+      // TODO: Replace with real database calls once schema is set up
+      // if (existingCheckin) {
+      //   const updatedCheckin = await habitDatabaseService.updateCheckin(existingCheckin.id, {
+      //     status,
+      //     effort,
+      //     editedAt: new Date().toISOString()
+      //   });
+      //   setCheckins(prev => prev.map(c => 
+      //     c.id === existingCheckin.id ? updatedCheckin : c
+      //   ));
+      // } else {
+      //   const newCheckin = await habitDatabaseService.createCheckin({
+      //     userId: 'demo-user',
+      //     habitId,
+      //     date: today,
+      //     status,
+      //     effort
+      //   });
+      //   setCheckins(prev => [...prev, newCheckin]);
+      // }
+    } catch (err) {
+      console.error('Error saving checkin:', err);
+      // Fallback to local state update if database fails
+      const today = new Date().toISOString().split('T')[0];
+      const existingCheckin = checkins.find(c => c.habitId === habitId && c.date === today);
+      
+      if (existingCheckin) {
+        setCheckins(prev => prev.map(c => 
+          c.id === existingCheckin.id 
+            ? { ...c, status, effort: effort as 0 | 1 | 2 | 3, editedAt: new Date().toISOString() }
+            : c
+        ));
+      } else {
+        const newCheckin: HabitCheckin = {
+          id: `${habitId}-${today}`,
+          userId: 'demo-user',
+          habitId,
+          date: today,
+          status,
+          effort: effort as 0 | 1 | 2 | 3,
+          createdAt: new Date().toISOString()
+        };
+        setCheckins(prev => [...prev, newCheckin]);
+      }
+    }
+  };
+
+  const handleCreateHabit = (habitData: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newHabit: Habit = {
+      ...habitData,
+      id: `habit-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    setHabits(prev => [newHabit, ...prev]);
+    setShowCreateModal(false);
+  };
+
+  const handleDeleteHabit = (habitId: string) => {
+    setHabits(prev => prev.filter(h => h.id !== habitId));
+    setCheckins(prev => prev.filter(c => c.habitId !== habitId));
+  };
+
+  const handleArchiveHabit = (habitId: string) => {
+    setHabits(prev => prev.map(h => 
+      h.id === habitId ? { ...h, archived: true } : h
+    ));
+  };
+
+  const getStatusIcon = (status: 'done' | 'partial' | 'skipped' | undefined) => {
+    switch (status) {
+      case 'done':
+        return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case 'partial':
+        return <Pause className="w-5 h-5 text-yellow-500" />;
+      case 'skipped':
+        return <SkipForward className="w-5 h-5 text-red-500" />;
+      default:
+        return <Clock className="w-5 h-5 text-gray-400" />;
+    }
+  };
+
+  const getStatusColor = (status: 'done' | 'partial' | 'skipped' | undefined) => {
+    switch (status) {
+      case 'done':
+        return 'border-green-500 bg-green-500/10';
+      case 'partial':
+        return 'border-yellow-500 bg-yellow-500/10';
+      case 'skipped':
+        return 'border-red-500 bg-red-500/10';
+      default:
+        return 'border-white/20 bg-white/5';
+    }
+  };
 
   const getGreeting = () => {
-    const hour = currentTime.getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   };
 
-  const getMotivationalMessage = () => {
-    const messages = [
-      "Every step forward is progress, no matter how small.",
-      "Your consistency today builds your success tomorrow.",
-      "You're stronger than you think, more capable than you know.",
-      "God's grace is sufficient for today's challenges.",
-      "Focus on progress, not perfection."
-    ];
-    return messages[Math.floor(Math.random() * messages.length)];
+  const getTodayProgress = () => {
+    const totalHabits = habits.length;
+    const completedHabits = checkins.filter(c => 
+      c.date === new Date().toISOString().split('T')[0] && c.status !== 'skipped'
+    ).length;
+    return Math.round((completedHabits / totalHabits) * 100);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-400 mx-auto mb-6"></div>
+          <h2 className="text-2xl font-bold text-white mb-2">Loading Your Habits</h2>
+          <p className="text-blue-200">Preparing your daily transformation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-8 h-8 text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Something went wrong</h2>
+          <p className="text-blue-200 mb-4">{error}</p>
+          <Button onClick={loadUserData} className="bg-yellow-400 text-black hover:bg-yellow-300">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
       {/* Header */}
-      <div className="bg-white/5 backdrop-blur-sm border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="backdrop-blur-sm border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <CalendarIcon className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-xl font-semibold text-white">Daily Ascension</h1>
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">Today&apos;s Habits</h1>
+              <p className="text-blue-200 text-lg">
+                {currentMoment ? `Focus on your ${currentMoment.name.toLowerCase()} rituals` : 'Plan your day with intention'}
+              </p>
             </div>
-            <button 
-              onClick={() => router.push('/dashboard')} 
-              className="text-blue-200 hover:text-white transition-colors flex items-center"
-            >
-              <ArrowLeftIcon className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </button>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center space-x-2"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Create Habit</span>
+              </button>
+              <div className="text-right">
+                <div className="text-3xl font-bold text-white">
+                  {new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </div>
+                <div className="text-blue-200 text-sm">
+                  {currentMoment ? `${currentMoment.name} Time` : 'Choose your moment'}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Welcome Section */}
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {getGreeting()}, {user.full_name}!
-          </h2>
-          <p className="text-blue-200 text-lg mb-4">
-            {currentTime.toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </p>
-          <p className="text-yellow-400 text-lg font-medium">
-            {getMotivationalMessage()}
-          </p>
-        </div>
-
-        {/* Progress Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trophy className="w-8 h-8 text-black" />
-            </div>
-            <h3 className="text-white font-semibold mb-2">Current Streak</h3>
-            <p className="text-3xl font-bold text-yellow-400">{dailyProgress.streak_count}</p>
-            <p className="text-blue-200 text-sm">days</p>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400"></div>
           </div>
-
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <TrendingUp className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="text-white font-semibold mb-2">Morning Progress</h3>
-            <p className="text-3xl font-bold text-green-400">{morningCompleted}/{totalMorningItems}</p>
-            <p className="text-blue-200 text-sm">completed</p>
+        ) : error ? (
+          <div className="bg-red-500/10 backdrop-blur-sm rounded-2xl p-6 border border-red-500/20 text-red-200 text-center">
+            {error}
           </div>
-
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Zap className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="text-white font-semibold mb-2">Energy Level</h3>
-            <p className="text-3xl font-bold text-blue-400">{dailyProgress.energy_level}/10</p>
-            <p className="text-blue-200 text-sm">feeling great!</p>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="text-white font-semibold mb-2">Mood Rating</h3>
-            <p className="text-3xl font-bold text-purple-400">{dailyProgress.mood_rating}/10</p>
-            <p className="text-blue-200 text-sm">positive vibes</p>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flex space-x-1 bg-white/10 backdrop-blur-sm rounded-xl p-1 mb-8">
-          <button
-            onClick={() => setActiveTab('morning')}
-            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
-              activeTab === 'morning'
-                ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black'
-                : 'text-blue-200 hover:text-white'
-            }`}
-          >
-            <Sun className="w-4 h-4 inline mr-2" />
-            Morning Routine
-          </button>
-          <button
-            onClick={() => setActiveTab('evening')}
-            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
-              activeTab === 'evening'
-                ? 'bg-gradient-to-r from-blue-400 to-cyan-500 text-white'
-                : 'text-blue-200 hover:text-white'
-            }`}
-          >
-            <Moon className="w-4 h-4 inline mr-2" />
-            Evening Reflection
-          </button>
-          <button
-            onClick={() => setActiveTab('progress')}
-            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
-              activeTab === 'progress'
-                ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
-                : 'text-blue-200 hover:text-white'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4 inline mr-2" />
-            Daily Progress
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'morning' && (
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-white flex items-center">
-                <Sun className="w-6 h-6 mr-3 text-yellow-400" />
-                Morning Ascension Protocol
-              </h3>
-              <div className="text-right">
-                <p className="text-blue-200 text-sm">Progress</p>
-                <p className="text-2xl font-bold text-yellow-400">
-                  {Math.round((morningCompleted / totalMorningItems) * 100)}%
-                </p>
+        ) : (
+          <div className="space-y-8">
+            {/* Current Moment Focus */}
+            {currentMoment && (
+              <div className="mb-8">
+                <div className="backdrop-blur-sm rounded-3xl p-8 border border-white/20 shadow-2xl">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-white mb-2">
+                        {currentMoment.name} Focus
+                      </h2>
+                      <p className="text-blue-200 text-lg">
+                        {currentMoment.startTime} - {currentMoment.endTime}
+                      </p>
+                    </div>
+                    <div className={`p-4 rounded-2xl ${currentMoment.color} shadow-lg`}>
+                      <currentMoment.icon className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    {habits
+                      .filter(habit => habit.moment === currentMoment.id && !habit.archived)
+                      .map(habit => {
+                        const checkin = checkins.find(c => c.habitId === habit.id && c.date === new Date().toISOString().split('T')[0]);
+                        const progress = checkin ? (checkin.status === 'done' ? 100 : checkin.status === 'partial' ? 50 : 0) : 0;
+                        
+                        return (
+                          <div key={habit.id} className="bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h3 className="text-xl font-semibold text-white">{habit.title}</h3>
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() => setEditingHabit(habit)}
+                                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                                    >
+                                      <Edit3 className="w-4 h-4 text-blue-400" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleArchiveHabit(habit.id)}
+                                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-400" />
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-blue-200 text-sm mb-3">{habit.purpose}</p>
+                                <div className="flex items-center space-x-4 text-sm text-blue-200">
+                                  <span className="flex items-center">
+                                    <Clock className="w-4 h-4 mr-2" />
+                                    {habit.window.start} - {habit.window.end}
+                                  </span>
+                                  {habit.dose && (
+                                    <span className="flex items-center">
+                                      <Target className="w-4 h-4 mr-2" />
+                                      {habit.dose.target} {habit.dose.unit}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="ml-6">
+                                <div className="w-24 h-24 relative">
+                                  <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                                    <circle
+                                      cx="50"
+                                      cy="50"
+                                      r="40"
+                                      stroke="currentColor"
+                                      strokeWidth="8"
+                                      fill="none"
+                                      className="text-white/20"
+                                    />
+                                    <circle
+                                      cx="50"
+                                      cy="50"
+                                      r="40"
+                                      stroke="currentColor"
+                                      strokeWidth="8"
+                                      fill="none"
+                                      strokeDasharray={`${2 * Math.PI * 40}`}
+                                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - progress / 100)}`}
+                                      className="text-blue-400 transition-all duration-500 ease-out"
+                                      strokeLinecap="round"
+                                    />
+                                  </svg>
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-lg font-bold text-white">{progress}%</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between">
+                              <div className="flex space-x-3">
+                                <button
+                                  onClick={() => handleCheckin(habit.id, 'done', 3)}
+                                  className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                                    checkin?.status === 'done'
+                                      ? 'bg-green-500/20 text-green-200 border border-green-400/30 shadow-lg'
+                                      : 'bg-white/10 text-white border border-white/20 hover:bg-green-500/20 hover:border-green-400/30 hover:shadow-lg'
+                                  }`}
+                                >
+                                  <CheckCircle className="w-5 h-5 mr-2 inline" />
+                                  Done
+                                </button>
+                                <button
+                                  onClick={() => handleCheckin(habit.id, 'partial', 2)}
+                                  className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                                    checkin?.status === 'partial'
+                                      ? 'bg-yellow-500/20 text-yellow-200 border border-yellow-400/30 shadow-lg'
+                                      : 'bg-white/10 text-white border border-white/20 hover:bg-yellow-500/20 hover:border-yellow-400/30 hover:shadow-lg'
+                                  }`}
+                                >
+                                  <MinusCircle className="w-5 h-5 mr-2 inline" />
+                                  Partial
+                                </button>
+                                <button
+                                  onClick={() => handleCheckin(habit.id, 'skipped', 1)}
+                                  className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                                    checkin?.status === 'skipped'
+                                      ? 'bg-red-500/20 text-red-200 border border-red-400/30 shadow-lg'
+                                      : 'bg-white/10 text-white border border-white/20 hover:bg-red-500/20 hover:border-red-400/30 hover:shadow-lg'
+                                  }`}
+                                >
+                                  <XCircle className="w-5 h-5 mr-2 inline" />
+                                  Skip
+                                </button>
+                              </div>
+                              
+                              {checkin && (
+                                <div className="text-right">
+                                  <div className="text-sm text-blue-200 mb-1">
+                                    Effort: {checkin.effort}/3
+                                  </div>
+                                  {checkin.note && (
+                                    <div className="text-xs text-blue-300 italic">
+                                      &quot;{checkin.note}&quot;
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-4">
-              {morningRoutine.map((item) => (
-                <div
-                  key={item.id}
-                  className={`p-4 rounded-xl border transition-all ${
-                    item.completed
-                      ? 'bg-green-500/20 border-green-500/30'
-                      : 'bg-white/5 border-white/20'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <button
-                        onClick={() => handleRoutineComplete(item.id, 'morning')}
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          item.completed
-                            ? 'bg-green-500 border-green-500'
-                            : 'border-white/30 hover:border-white/50'
-                        }`}
-                      >
-                        {item.completed && <CheckCircle className="w-4 h-4 text-white" />}
-                      </button>
-                      <div>
-                        <h4 className={`font-medium ${
-                          item.completed ? 'text-green-200' : 'text-white'
-                        }`}>
-                          {item.name}
-                        </h4>
-                        <div className="flex items-center space-x-4 text-sm text-blue-200">
-                          <span className="flex items-center">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {item.duration_minutes} min
-                          </span>
-                          <span className="capitalize">{item.category.replace('_', ' ')}</span>
-                          {item.optional && (
-                            <span className="text-yellow-400 text-xs">Optional</span>
-                          )}
+            {/* All Moments Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {MOMENTS.map(moment => {
+                const momentHabits = habits.filter(habit => habit.moment === moment.id && !habit.archived);
+                const completedHabits = momentHabits.filter(habit => {
+                  const checkin = checkins.find(c => c.habitId === habit.id && c.date === new Date().toISOString().split('T')[0]);
+                  return checkin && checkin.status === 'done';
+                });
+                const completionRate = momentHabits.length > 0 ? (completedHabits.length / momentHabits.length) * 100 : 0;
+                
+                return (
+                  <div key={moment.id} className="backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+                    <div className={`bg-gradient-to-r ${moment.color} rounded-t-2xl p-6`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-xl font-bold text-white mb-1">{moment.name}</h3>
+                          <p className="text-white/80 text-sm">{moment.startTime} - {moment.endTime}</p>
+                        </div>
+                        <div className={`p-3 rounded-xl bg-white/20 backdrop-blur-sm`}>
+                          <moment.icon className="w-6 h-6 text-white" />
                         </div>
                       </div>
                     </div>
-                    {item.intensity_options && (
-                      <select className="bg-white/20 border border-white/30 rounded-lg px-3 py-1 text-white text-sm">
-                        {item.intensity_options.map((intensity) => (
-                          <option key={intensity} value={intensity} className="bg-slate-800">
-                            {intensity}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 p-6 bg-gradient-to-r from-yellow-400/10 to-orange-500/10 border border-yellow-400/20 rounded-xl">
-              <h4 className="text-lg font-semibold text-yellow-400 mb-3 flex items-center">
-                <Lightbulb className="w-5 h-5 mr-2" />
-                Today's Focus
-              </h4>
-              <p className="text-blue-200">
-                Based on your recent progress, focus on <strong>mental priming</strong> today. 
-                Your learning module will include content specifically tailored to your current goals.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'evening' && (
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-white flex items-center">
-                <Moon className="w-6 h-6 mr-3 text-blue-400" />
-                Evening Reflection
-              </h3>
-              <div className="text-right">
-                <p className="text-blue-200 text-sm">Progress</p>
-                <p className="text-2xl font-bold text-blue-400">
-                  {Math.round((eveningCompleted / totalEveningItems) * 100)}%
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {eveningReflection.map((item) => (
-                <div
-                  key={item.id}
-                  className={`p-4 rounded-xl border transition-all ${
-                    item.completed
-                      ? 'bg-blue-500/20 border-blue-500/30'
-                      : 'bg-white/5 border-white/20'
-                  }`}
-                >
-                  <div className="flex items-start space-x-4">
-                    <button
-                      onClick={() => handleRoutineComplete(item.id, 'evening')}
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-1 ${
-                        item.completed
-                          ? 'bg-blue-500 border-blue-500'
-                          : 'border-white/30 hover:border-white/50'
-                      }`}
-                    >
-                      {item.completed && <CheckCircle className="w-4 h-4 text-white" />}
-                    </button>
-                    <div className="flex-1">
-                      <h4 className={`font-medium mb-2 ${
-                        item.completed ? 'text-blue-200' : 'text-white'
-                      }`}>
-                        {item.question}
-                      </h4>
-                      {item.completed && (
-                        <textarea
-                          placeholder="Write your reflection..."
-                          className="w-full bg-white/10 border border-white/20 rounded-lg p-3 text-white placeholder-blue-200 resize-none"
-                          rows={3}
-                        />
+                    
+                    <div className="p-6">
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm text-blue-200 mb-2">
+                          <span>Progress</span>
+                          <span>{Math.round(completionRate)}%</span>
+                        </div>
+                        <div className="w-full bg-white/10 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-500 ${
+                              completionRate === 100 ? 'bg-green-400' : 
+                              completionRate > 50 ? 'bg-yellow-400' : 'bg-blue-400'
+                            }`}
+                            style={{ width: `${completionRate}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white mb-1">
+                          {completedHabits.length}/{momentHabits.length}
+                        </div>
+                        <div className="text-blue-200 text-sm">habits completed</div>
+                      </div>
+                      
+                      {momentHabits.length === 0 && (
+                        <div className="text-center py-4">
+                          <div className="text-blue-200 text-sm mb-2">No habits scheduled</div>
+                          <button 
+                            onClick={() => setShowCreateModal(true)}
+                            className="px-4 py-2 bg-blue-500/20 text-blue-200 rounded-lg border border-blue-400/30 hover:bg-blue-500/30 transition-colors"
+                          >
+                            Add Habit
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            <div className="mt-8 p-6 bg-gradient-to-r from-blue-400/10 to-cyan-500/10 border border-blue-400/20 rounded-xl">
-              <h4 className="text-lg font-semibold text-blue-400 mb-3 flex items-center">
-                <BookOpen className="w-5 h-5 mr-2" />
-                Reflection Tip
-              </h4>
-              <p className="text-blue-200">
-                Take time to truly reflect on your answers. The depth of your reflection 
-                directly correlates with your growth and self-awareness.
-              </p>
+            {/* Quick Stats */}
+            <div className="backdrop-blur-sm rounded-3xl p-8 border border-white/20 shadow-2xl">
+              <h3 className="text-2xl font-bold text-white mb-6 text-center">Today&apos;s Progress</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-400 mb-2">
+                    {habits.filter(habit => {
+                      const checkin = checkins.find(c => c.habitId === habit.id && c.date === new Date().toISOString().split('T')[0]);
+                      return checkin && checkin.status === 'done';
+                    }).length}
+                  </div>
+                  <div className="text-blue-200">Completed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-yellow-400 mb-2">
+                    {habits.filter(habit => {
+                      const checkin = checkins.find(c => c.habitId === habit.id && c.date === new Date().toISOString().split('T')[0]);
+                      return checkin && checkin.status === 'partial';
+                    }).length}
+                  </div>
+                  <div className="text-blue-200">Partial</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-red-400 mb-2">
+                    {habits.filter(habit => {
+                      const checkin = checkins.find(c => c.habitId === habit.id && c.date === new Date().toISOString().split('T')[0]);
+                      return checkin && checkin.status === 'skipped';
+                    }).length}
+                  </div>
+                  <div className="text-blue-200">Skipped</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-400 mb-2">
+                    {habits.filter(habit => {
+                      const checkin = checkins.find(c => c.habitId === habit.id && c.date === new Date().toISOString().split('T')[0]);
+                      return !checkin;
+                    }).length}
+                  </div>
+                  <div className="text-blue-200">Pending</div>
+                </div>
+              </div>
             </div>
           </div>
         )}
-
-        {activeTab === 'progress' && (
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-            <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <BarChart3 className="w-6 h-6 mr-3 text-green-400" />
-              Today's Progress & Insights
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Gratitude Section */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-white flex items-center">
-                  <Heart className="w-5 h-5 mr-2 text-pink-400" />
-                  Gratitude Entries
-                </h4>
-                <div className="space-y-2">
-                  {dailyProgress.gratitude_entries.map((entry, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                      <Star className="w-4 h-4 text-yellow-400" />
-                      <span className="text-blue-200">{entry}</span>
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full py-2 bg-gradient-to-r from-pink-400 to-purple-500 text-white rounded-lg hover:from-pink-500 hover:to-purple-600 transition-all">
-                  Add Gratitude Entry
-                </button>
-              </div>
-
-              {/* Daily Wins */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-white flex items-center">
-                  <Trophy className="w-5 h-5 mr-2 text-yellow-400" />
-                  Daily Wins
-                </h4>
-                <div className="space-y-2">
-                  {dailyProgress.daily_wins.map((win, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                      <span className="text-blue-200">{win}</span>
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full py-2 bg-gradient-to-r from-green-400 to-emerald-500 text-white rounded-lg hover:from-green-500 hover:to-emerald-600 transition-all">
-                  Add Daily Win
-                </button>
-              </div>
-            </div>
-
-            {/* Growth Areas & Tomorrow's Intentions */}
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-white flex items-center">
-                  <Target className="w-5 h-5 mr-2 text-orange-400" />
-                  Growth Areas
-                </h4>
-                <div className="space-y-2">
-                  {dailyProgress.growth_areas.map((area, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                      <RefreshCw className="w-4 h-4 text-orange-400" />
-                      <span className="text-blue-200">{area}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-white flex items-center">
-                  <Brain className="w-5 h-5 mr-2 text-blue-400" />
-                  Tomorrow's Intentions
-                </h4>
-                <div className="space-y-2">
-                  {dailyProgress.tomorrow_intentions.map((intention, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                      <Zap className="w-4 h-4 text-blue-400" />
-                      <span className="text-blue-200">{intention}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* AI Insights */}
-            <div className="mt-8 p-6 bg-gradient-to-r from-purple-400/10 to-pink-500/10 border border-purple-400/20 rounded-xl">
-              <h4 className="text-lg font-semibold text-purple-400 mb-3 flex items-center">
-                <Lightbulb className="w-5 h-5 mr-2" />
-                AI-Powered Insights
-              </h4>
-              <p className="text-blue-200 mb-3">
-                Based on your daily patterns, here are personalized recommendations:
-              </p>
-              <ul className="text-blue-200 space-y-2">
-                <li>• Your energy peaks in the morning - maximize your routine completion before 9 AM</li>
-                <li>• Consider adding 5 minutes of meditation to your evening reflection</li>
-                <li>• Your gratitude practice is strong - try sharing one entry with your accountability partner</li>
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* Quick Actions */}
-        <div className="mt-8 text-center">
-          <button className="px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-lg rounded-full hover:from-yellow-300 hover:to-orange-400 transform hover:scale-105 transition-all duration-300 shadow-2xl">
-            Complete Today's Protocol
-          </button>
-        </div>
       </div>
+
+      {/* Create Habit Modal */}
+      <CreateHabitModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSave={handleCreateHabit}
+      />
     </div>
   );
 }

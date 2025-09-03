@@ -62,7 +62,10 @@ export default function DashboardLayout({
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home, current: pathname === '/dashboard' },
+    { name: 'Habit Management', href: '/habits', icon: Target, current: pathname === '/habits' },
     { name: 'Daily Check-in', href: '/daily', icon: Calendar, current: pathname === '/daily' },
+    { name: 'Weekly Review', href: '/weekly-review', icon: BarChart3, current: pathname === '/weekly-review' },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3, current: pathname === '/analytics' },
     { name: 'Progress Tracking', href: '/progress', icon: TrendingUp, current: pathname === '/progress' },
     { name: 'Goals & Challenges', href: '/challenges', icon: Target, current: pathname === '/challenges' },
     { name: 'Physical Health', href: '/workouts', icon: Heart, current: pathname === '/workouts' },

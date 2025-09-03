@@ -1,3 +1,5 @@
+import { ComponentType } from 'react';
+
 // ASCEND Platform Type Definitions
 
 // User Profile Types
@@ -414,3 +416,133 @@ export type {
   UserAnalytics,
   Notification,
 };
+
+// New Habit Tracking System Types
+export interface Habit {
+  id: string;
+  userId: string;
+  title: string;
+  purpose?: string;
+  moment: 'morning' | 'midday' | 'evening' | 'custom';
+  cadence: {
+    type: 'daily' | 'weekdays' | 'custom';
+    rrule?: string;
+  };
+  dose?: {
+    unit: string;
+    target: number;
+  };
+  window: {
+    start: string; // "07:00"
+    end: string;   // "11:00"
+  };
+  difficulty: 1 | 2 | 3;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HabitOccurrence {
+  id: string;
+  userId: string;
+  habitId: string;
+  date: string; // "2025-01-15"
+  windowStart: string; // ISO string
+  windowEnd: string;   // ISO string
+  dueAt: string;       // ISO string
+}
+
+export interface HabitCheckin {
+  id: string;
+  userId: string;
+  habitId: string;
+  date: string; // "2025-01-15"
+  status: 'done' | 'partial' | 'skipped';
+  effort: 0 | 1 | 2 | 3;
+  doseActual?: number;
+  note?: string;
+  createdAt: string;
+  editedAt?: string;
+}
+
+export interface HabitMetrics {
+  id: string;
+  userId: string;
+  habitId: string;
+  ema30: number; // 0-1 decimal
+  streak: {
+    current: number;
+    best: number;
+    lastDate: string;
+    graceTokens: number;
+  };
+  maintenanceMode: boolean;
+  lastUpdated: string;
+}
+
+export interface UserPreferences {
+  quietHours: {
+    start: string; // "22:00"
+    end: string;   // "07:00"
+  };
+  pushEnabled: boolean;
+  batchByMoment: boolean;
+  preCueMinutes: 0 | 10 | 15 | 30;
+}
+
+export interface HabitTemplate {
+  id: string;
+  title: string;
+  purpose: string;
+  moment: 'morning' | 'midday' | 'evening';
+  cadence: {
+    type: 'daily' | 'weekdays' | 'custom';
+    rrule?: string;
+  };
+  dose?: {
+    unit: string;
+    target: number;
+  };
+  window: {
+    start: string;
+    end: string;
+  };
+  difficulty: 1 | 2 | 3;
+  category: 'faith' | 'focus' | 'health' | 'micro';
+  description: string;
+}
+
+export interface Moment {
+  id: string;
+  name: 'morning' | 'midday' | 'evening';
+  displayName: string;
+  startTime: string;
+  endTime: string;
+  color: string;
+  icon: ComponentType<{ className?: string }>;
+}
+
+export interface AIInsight {
+  id: string;
+  userId: string;
+  habitId?: string;
+  type: 'weekly' | 'habit' | 'onCreate' | 'streak_drop';
+  content: string;
+  action?: string;
+  microChallenge?: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface WeeklyReview {
+  id: string;
+  userId: string;
+  weekStart: string;
+  weekEnd: string;
+  progress: number;
+  topWins: string[];
+  opportunities: string[];
+  aiInsights: AIInsight[];
+  actionPlan: string[];
+  createdAt: string;
+}

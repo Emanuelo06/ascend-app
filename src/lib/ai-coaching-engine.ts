@@ -1,45 +1,22 @@
-import { pricingEngine } from './pricing-engine';
-
-// AI Coaching Engine - Fully Automated Coaching Without Human Intervention
-export interface CoachingSession {
-  id: string;
-  userId: string;
-  sessionType: 'daily_motivation' | 'crisis_support' | 'goal_setting' | 'habit_analysis' | 'spiritual_guidance' | 'workout_planning' | 'nutrition_advice';
-  userMessage: string;
-  aiResponse: string;
-  contextData: CoachingContext;
-  satisfactionRating?: number;
-  followUpActions: string[];
-  nextSessionDate: Date;
-  createdAt: Date;
-}
+import { Habit, HabitCheckin, HabitMetrics, AIInsight } from '@/types';
 
 export interface CoachingContext {
+  userId: string;
+  habits: Habit[];
+  checkins: HabitCheckin[];
+  metrics: HabitMetrics[];
+  goals: string[];
+  timezone: string;
   currentStreak: number;
-  recentProgress: any[];
-  userGoals: string[];
-  currentChallenges: string[];
-  moodTrend: 'improving' | 'declining' | 'stable';
-  engagementLevel: number; // 0-100
-  lastSessionDate?: Date;
-}
-
-export interface AICoachingResponse {
-  message: string;
-  actionItems: string[];
-  motivationalQuote: string;
-  nextSteps: string[];
-  resources: string[];
-  followUpDate: Date;
+  recentProgress: string[];
 }
 
 export class AICoachingEngine {
   private static instance: AICoachingEngine;
-  private coachingHistory: Map<string, CoachingSession[]> = new Map();
-  private userProgress: Map<string, any> = new Map();
+  private insightsCache: Map<string, { insight: AIInsight; expiresAt: Date }> = new Map();
 
   private constructor() {
-    this.initializeCoaching();
+    console.log('🤖 AI Coaching Engine initialized - Ready to provide insights');
   }
 
   public static getInstance(): AICoachingEngine {
@@ -49,418 +26,337 @@ export class AICoachingEngine {
     return AICoachingEngine.instance;
   }
 
-  private initializeCoaching(): void {
-    console.log('🤖 AI Coaching Engine initialized - No human coaches required');
-    console.log('📚 AI will provide personalized coaching sessions automatically');
-  }
+  /**
+   * Generate weekly insights based on user data
+   */
+  public async generateWeeklyInsights(context: CoachingContext): Promise<AIInsight[]> {
+    const cacheKey = `weekly-${context.userId}-${this.getWeekStart()}`;
+    
+    // Check cache first
+    const cached = this.insightsCache.get(cacheKey);
+    if (cached && cached.expiresAt > new Date()) {
+      return [cached.insight];
+    }
 
-  // Generate AI coaching response based on user input and context
-  public async generateCoachingResponse(
-    userId: string,
-    userMessage: string,
-    sessionType: CoachingSession['sessionType'],
-    context?: CoachingContext
-  ): Promise<AICoachingResponse> {
     try {
-      // Get or create user context
-      const userContext = context || await this.getUserContext(userId);
+      const insights = await this.analyzeWeeklyData(context);
       
-      // Analyze user message and context
-      const analysis = this.analyzeUserInput(userMessage, userContext);
+      // Cache the insight for 24 hours
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
       
-      // Generate personalized AI response
-      const aiResponse = await this.generatePersonalizedResponse(analysis, sessionType, userContext);
-      
-      // Create follow-up actions
-      const followUpActions = this.generateFollowUpActions(analysis, sessionType);
-      
-      // Store coaching session
-      await this.storeCoachingSession(userId, userMessage, aiResponse.message, sessionType, userContext, followUpActions);
-      
-      // Update user progress
-      this.updateUserProgress(userId, sessionType, analysis);
-      
-      return aiResponse;
-      
+      this.insightsCache.set(cacheKey, {
+        insight: insights[0],
+        expiresAt
+      });
+
+      return insights;
     } catch (error) {
-      console.error('Error generating AI coaching response:', error);
-      return this.getFallbackResponse(sessionType);
+      console.error('Error generating weekly insights:', error);
+      return this.getFallbackInsights(context);
     }
   }
 
-  private async getUserContext(userId: string): Promise<CoachingContext> {
-    // In production, this would fetch from database
-    // For now, return mock context
-    return {
-      currentStreak: Math.floor(Math.random() * 30) + 1,
-      recentProgress: [
-        { date: new Date(), activity: 'morning_routine', completed: true },
-        { date: new Date(), activity: 'workout', completed: true },
-        { date: new Date(), activity: 'meditation', completed: false }
-      ],
-      userGoals: ['Build morning routine', 'Improve fitness', 'Reduce stress'],
-      currentChallenges: ['Time management', 'Consistency'],
-      moodTrend: 'improving',
-      engagementLevel: Math.floor(Math.random() * 40) + 60
-    };
-  }
-
-  private analyzeUserInput(userMessage: string, context: CoachingContext): any {
-    // AI analysis of user input
-    const analysis = {
-      sentiment: this.analyzeSentiment(userMessage),
-      urgency: this.analyzeUrgency(userMessage),
-      topic: this.extractTopic(userMessage),
-      needs: this.identifyNeeds(userMessage, context),
-      motivation: this.assessMotivation(context)
-    };
-
-    return analysis;
-  }
-
-  private analyzeSentiment(message: string): 'positive' | 'neutral' | 'negative' {
-    const positiveWords = ['great', 'good', 'happy', 'excited', 'motivated', 'progress', 'success'];
-    const negativeWords = ['bad', 'terrible', 'struggling', 'failing', 'depressed', 'anxious', 'stuck'];
-    
-    const lowerMessage = message.toLowerCase();
-    let positiveCount = 0;
-    let negativeCount = 0;
-    
-    positiveWords.forEach(word => {
-      if (lowerMessage.includes(word)) positiveCount++;
-    });
-    
-    negativeWords.forEach(word => {
-      if (lowerMessage.includes(word)) negativeCount++;
-    });
-    
-    if (positiveCount > negativeCount) return 'positive';
-    if (negativeCount > positiveCount) return 'negative';
-    return 'neutral';
-  }
-
-  private analyzeUrgency(message: string): 'low' | 'medium' | 'high' {
-    const urgentWords = ['help', 'urgent', 'emergency', 'crisis', 'now', 'immediately'];
-    const lowerMessage = message.toLowerCase();
-    
-    const urgentCount = urgentWords.filter(word => lowerMessage.includes(word)).length;
-    
-    if (urgentCount >= 2) return 'high';
-    if (urgentCount >= 1) return 'medium';
-    return 'low';
-  }
-
-  private extractTopic(message: string): string {
-    const topics = {
-      'workout': ['exercise', 'fitness', 'gym', 'workout', 'training'],
-      'nutrition': ['food', 'diet', 'nutrition', 'eating', 'meal'],
-      'mental_health': ['stress', 'anxiety', 'depression', 'mental', 'mind'],
-      'spiritual': ['prayer', 'meditation', 'spiritual', 'faith', 'god'],
-      'habits': ['routine', 'habit', 'consistency', 'discipline'],
-      'goals': ['goal', 'target', 'objective', 'plan', 'vision']
-    };
-    
-    const lowerMessage = message.toLowerCase();
-    
-    for (const [topic, keywords] of Object.entries(topics)) {
-      if (keywords.some(keyword => lowerMessage.includes(keyword))) {
-        return topic;
-      }
-    }
-    
-    return 'general';
-  }
-
-  private identifyNeeds(message: string, context: CoachingContext): string[] {
-    const needs = [];
-    
-    if (context.engagementLevel < 70) {
-      needs.push('motivation');
-    }
-    
-    if (context.currentStreak < 7) {
-      needs.push('consistency');
-    }
-    
-    if (context.moodTrend === 'declining') {
-      needs.push('emotional_support');
-    }
-    
-    if (context.currentChallenges.length > 0) {
-      needs.push('problem_solving');
-    }
-    
-    return needs;
-  }
-
-  private assessMotivation(context: CoachingContext): number {
-    let motivation = 50; // Base motivation
-    
-    // Adjust based on streak
-    motivation += Math.min(context.currentStreak * 2, 30);
-    
-    // Adjust based on engagement
-    motivation += (context.engagementLevel - 50) * 0.3;
-    
-    // Adjust based on mood
-    if (context.moodTrend === 'improving') motivation += 10;
-    if (context.moodTrend === 'declining') motivation -= 15;
-    
-    return Math.max(0, Math.min(100, motivation));
-  }
-
-  private async generatePersonalizedResponse(
-    analysis: any,
-    sessionType: CoachingSession['sessionType'],
+  /**
+   * Generate habit-specific insights
+   */
+  public async generateHabitInsights(
+    habitId: string, 
     context: CoachingContext
-  ): Promise<AICoachingResponse> {
-    // Generate context-aware AI response
-    const response = this.buildResponseTemplate(analysis, sessionType, context);
+  ): Promise<AIInsight | null> {
+    const cacheKey = `habit-${context.userId}-${habitId}`;
     
-    // Personalize based on user context
-    const personalizedResponse = this.personalizeResponse(response, context);
-    
-    return personalizedResponse;
-  }
+    // Check cache first
+    const cached = this.insightsCache.get(cacheKey);
+    if (cached && cached.expiresAt > new Date()) {
+      return cached.insight;
+    }
 
-  private buildResponseTemplate(analysis: any, sessionType: string, context: CoachingContext): AICoachingResponse {
-    const templates = {
-      daily_motivation: {
-        message: `I can see you're making great progress with your ${context.currentStreak}-day streak! ${this.getMotivationalMessage(analysis.sentiment)}`,
-        actionItems: ['Complete your morning routine', 'Take one step toward your biggest goal', 'Celebrate your progress'],
-        motivationalQuote: this.getMotivationalQuote(analysis.sentiment),
-        nextSteps: ['Review your goals for today', 'Plan tomorrow\'s priorities', 'Check in with your accountability partner'],
-        resources: ['Daily motivation playlist', 'Progress tracking tools', 'Community support'],
-        followUpDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
-      },
-      crisis_support: {
-        message: `I understand you're going through a challenging time. ${this.getCrisisSupportMessage(analysis.urgency)}`,
-        actionItems: ['Take 3 deep breaths', 'Identify one small step you can take', 'Reach out to your support network'],
-        motivationalQuote: this.getCrisisQuote(),
-        nextSteps: ['Practice self-compassion', 'Break down challenges into smaller steps', 'Focus on what you can control'],
-        resources: ['Crisis support resources', 'Breathing exercises', 'Emergency contacts'],
-        followUpDate: new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours for crisis
-      },
-      goal_setting: {
-        message: `Let's work on setting clear, achievable goals that align with your vision. ${this.getGoalSettingMessage(context)}`,
-        actionItems: ['Write down your top 3 priorities', 'Break down one goal into actionable steps', 'Set a timeline for achievement'],
-        motivationalQuote: this.getGoalQuote(),
-        nextSteps: ['Review goals weekly', 'Track progress daily', 'Adjust goals as needed'],
-        resources: ['Goal setting templates', 'Progress tracking tools', 'SMART goal guide'],
-        followUpDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 1 week
-      }
-    };
+    try {
+      const habit = context.habits.find(h => h.id === habitId);
+      if (!habit) return null;
 
-    return templates[sessionType as keyof typeof templates] || templates.daily_motivation;
-  }
+      const habitCheckins = context.checkins.filter(c => c.habitId === habitId);
+      const habitMetrics = context.metrics.find(m => m.habitId === habitId);
 
-  private getMotivationalMessage(sentiment: string): string {
-    const messages = {
-      positive: "Your positive energy is contagious! Keep building on this momentum.",
-      neutral: "You're showing great consistency. Every day builds your foundation for success.",
-      negative: "It's okay to have challenging days. Your resilience is growing stronger with each challenge."
-    };
-    
-    return messages[sentiment] || messages.neutral;
-  }
+      const insight = await this.analyzeHabitData(habit, habitCheckins, habitMetrics, context);
+      
+      // Cache the insight for 24 hours
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      
+      this.insightsCache.set(cacheKey, {
+        insight,
+        expiresAt
+      });
 
-  private getCrisisSupportMessage(urgency: string): string {
-    const messages = {
-      high: "Let's focus on getting you through this moment safely. You're not alone.",
-      medium: "This is a difficult situation, but you have the strength to navigate it.",
-      low: "While this feels challenging, you have the tools and support to work through it."
-    };
-    
-    return messages[urgency] || messages.medium;
-  }
-
-  private getGoalSettingMessage(context: CoachingContext): string {
-    if (context.engagementLevel > 80) {
-      return "Your high engagement shows you're ready for more challenging goals.";
-    } else if (context.engagementLevel > 60) {
-      return "You're building momentum. Let's set goals that stretch you without overwhelming you.";
-    } else {
-      return "Let's start with smaller, achievable goals to rebuild your confidence and momentum.";
+      return insight;
+    } catch (error) {
+      console.error('Error generating habit insights:', error);
+      return this.getFallbackHabitInsight(context);
     }
   }
 
-  private getMotivationalQuote(sentiment: string): string {
-    const quotes = {
-      positive: "Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill",
-      neutral: "The only way to do great work is to love what you do. - Steve Jobs",
-      negative: "When we are no longer able to change a situation, we are challenged to change ourselves. - Viktor Frankl"
-    };
+  /**
+   * Generate insights for new habit creation
+   */
+  public async generateOnCreateInsights(
+    habit: Habit, 
+    context: CoachingContext
+  ): Promise<AIInsight> {
+    const cacheKey = `oncreate-${context.userId}-${habit.id}`;
     
-    return quotes[sentiment] || quotes.neutral;
+    // Check cache first
+    const cached = this.insightsCache.get(cacheKey);
+    if (cached && cached.expiresAt > new Date()) {
+      return cached.insight;
+    }
+
+    try {
+      const insight = await this.analyzeNewHabit(habit, context);
+      
+      // Cache the insight for 24 hours
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      
+      this.insightsCache.set(cacheKey, {
+        insight,
+        expiresAt
+      });
+
+      return insight;
+    } catch (error) {
+      console.error('Error generating onCreate insights:', error);
+      return this.getFallbackOnCreateInsight(habit, context);
+    }
   }
 
-  private getCrisisQuote(): string {
-    return "The human spirit is stronger than anything that can happen to it. - C.C. Scott";
-  }
-
-  private getGoalQuote(): string {
-    return "A goal without a plan is just a wish. - Antoine de Saint-Exupéry";
-  }
-
-  private personalizeResponse(response: AICoachingResponse, context: CoachingContext): AICoachingResponse {
-    // Personalize based on user's current streak and engagement
-    if (context.currentStreak > 21) {
-      response.message += " You're building an incredible habit foundation!";
-    } else if (context.currentStreak > 7) {
-      response.message += " You're past the initial challenge phase - keep going!";
-    } else {
-      response.message += " Every day counts toward building your new habits.";
-    }
-
-    // Add personalized action items based on current challenges
-    if (context.currentChallenges.includes('Time management')) {
-      response.actionItems.push('Block 15 minutes for your most important task');
-    }
+  /**
+   * Analyze weekly data to generate insights
+   */
+  private async analyzeWeeklyData(context: CoachingContext): Promise<AIInsight[]> {
+    const weekStart = this.getWeekStart();
+    const weekEnd = this.getWeekEnd();
     
-    if (context.currentChallenges.includes('Consistency')) {
-      response.actionItems.push('Set a reminder for your daily routine');
-    }
+    // Calculate weekly progress
+    const weeklyCheckins = context.checkins.filter(c => {
+      const checkinDate = new Date(c.date);
+      return checkinDate >= weekStart && checkinDate <= weekEnd;
+    });
 
-    return response;
-  }
+    const totalHabits = context.habits.length;
+    const completedHabits = weeklyCheckins.filter(c => c.status !== 'skipped').length;
+    const weeklyProgress = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
 
-  private generateFollowUpActions(analysis: any, sessionType: string): string[] {
-    const actions = [];
-    
-    if (analysis.urgency === 'high') {
-      actions.push('Schedule immediate follow-up session');
-      actions.push('Activate crisis support protocols');
-    }
-    
-    if (analysis.needs.includes('motivation')) {
-      actions.push('Send daily motivation messages');
-      actions.push('Create personalized motivation playlist');
-    }
-    
-    if (analysis.needs.includes('consistency')) {
-      actions.push('Set up habit tracking reminders');
-      actions.push('Create accountability check-ins');
-    }
-    
-    return actions;
-  }
+    // Find top performing habits
+    const habitPerformance = context.habits.map(habit => {
+      const habitCheckins = weeklyCheckins.filter(c => c.habitId === habit.id);
+      const completed = habitCheckins.filter(c => c.status !== 'skipped').length;
+      const total = habitCheckins.length;
+      return { habit, completed, total, percentage: total > 0 ? (completed / total) * 100 : 0 };
+    });
 
-  private async storeCoachingSession(
-    userId: string,
-    userMessage: string,
-    aiResponse: string,
-    sessionType: string,
-    context: CoachingContext,
-    followUpActions: string[]
-  ): Promise<void> {
-    const session: CoachingSession = {
-      id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId,
-      sessionType: sessionType as CoachingSession['sessionType'],
-      userMessage,
-      aiResponse,
-      contextData: context,
-      followUpActions,
-      nextSessionDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Default 24 hours
-      createdAt: new Date()
-    };
+    const topHabits = habitPerformance
+      .filter(p => p.percentage >= 80)
+      .sort((a, b) => b.percentage - a.percentage)
+      .slice(0, 3);
 
-    // Store in memory (in production, this would go to database)
-    if (!this.coachingHistory.has(userId)) {
-      this.coachingHistory.set(userId, []);
-    }
-    this.coachingHistory.get(userId)!.push(session);
+    const strugglingHabits = habitPerformance
+      .filter(p => p.percentage < 50)
+      .sort((a, b) => a.percentage - b.percentage)
+      .slice(0, 3);
 
-    console.log(`🤖 AI Coaching Session stored for user ${userId}: ${sessionType}`);
-  }
+    // Generate insights based on patterns
+    const insights: AIInsight[] = [];
 
-  private updateUserProgress(userId: string, sessionType: string, analysis: any): void {
-    // Update user progress metrics
-    if (!this.userProgress.has(userId)) {
-      this.userProgress.set(userId, {
-        totalSessions: 0,
-        sessionTypes: {},
-        averageSatisfaction: 0,
-        lastSessionDate: null
+    if (topHabits.length > 0) {
+      const topHabit = topHabits[0];
+      insights.push({
+        id: `weekly-${context.userId}-${Date.now()}`,
+        userId: context.userId,
+        type: 'weekly',
+        content: `Great work on ${topHabit.habit.title}! You're maintaining excellent consistency.`,
+        action: `Keep up the momentum with ${topHabit.habit.title}`,
+        microChallenge: `Maintain this habit for 3 more days`,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       });
     }
 
-    const progress = this.userProgress.get(userId)!;
-    progress.totalSessions++;
-    progress.sessionTypes[sessionType] = (progress.sessionTypes[sessionType] || 0) + 1;
-    progress.lastSessionDate = new Date();
-
-    console.log(`📊 User progress updated for ${userId}: ${sessionType} session`);
-  }
-
-  private getFallbackResponse(sessionType: string): AICoachingResponse {
-    return {
-      message: "I'm here to support you on your journey. Let's work together to overcome any challenges you're facing.",
-      actionItems: ['Take a moment to breathe', 'Identify one small step forward', 'Remember your progress so far'],
-      motivationalQuote: "The journey of a thousand miles begins with one step. - Lao Tzu",
-      nextSteps: ['Reflect on your current situation', 'Set one small goal for today', 'Check in again soon'],
-      resources: ['Support resources', 'Community forums', 'Progress tracking tools'],
-      followUpDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
-    };
-  }
-
-  // Get coaching history for a user
-  public getCoachingHistory(userId: string): CoachingSession[] {
-    return this.coachingHistory.get(userId) || [];
-  }
-
-  // Get user progress summary
-  public getUserProgress(userId: string): any {
-    return this.userProgress.get(userId) || {
-      totalSessions: 0,
-      sessionTypes: {},
-      averageSatisfaction: 0,
-      lastSessionDate: null
-    };
-  }
-
-  // Schedule next coaching session
-  public scheduleNextSession(userId: string, sessionType: string, urgency: string): Date {
-    const baseInterval = 24 * 60 * 60 * 1000; // 24 hours
-    
-    let interval = baseInterval;
-    
-    if (urgency === 'high') {
-      interval = 2 * 60 * 60 * 1000; // 2 hours
-    } else if (urgency === 'medium') {
-      interval = 12 * 60 * 60 * 1000; // 12 hours
+    if (strugglingHabits.length > 0) {
+      const strugglingHabit = strugglingHabits[0];
+      insights.push({
+        id: `weekly-${context.userId}-${Date.now() + 1}`,
+        userId: context.userId,
+        type: 'weekly',
+        content: `${strugglingHabit.habit.title} could use some attention. Consider adjusting the timing or difficulty.`,
+        action: `Move ${strugglingHabit.habit.title} to a different moment`,
+        microChallenge: `Try this habit 3 times this week`,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      });
     }
-    
-    // Adjust based on session type
-    if (sessionType === 'crisis_support') {
-      interval = Math.min(interval, 4 * 60 * 60 * 1000); // Max 4 hours
-    }
-    
-    return new Date(Date.now() + interval);
-  }
 
-  // Generate automated coaching insights
-  public generateInsights(userId: string): string[] {
-    const history = this.getCoachingHistory(userId);
-    const progress = this.getUserProgress(userId);
-    
-    const insights = [];
-    
-    if (progress.totalSessions > 10) {
-      insights.push('You\'ve completed 10+ coaching sessions - consistency is building!');
-    }
-    
-    if (progress.sessionTypes['crisis_support']) {
-      insights.push('You\'ve shown resilience by seeking support during challenging times.');
-    }
-    
-    if (progress.sessionTypes['goal_setting']) {
-      insights.push('Your goal-setting sessions show you\'re focused on growth and improvement.');
-    }
-    
     return insights;
+  }
+
+  /**
+   * Analyze specific habit data
+   */
+  private async analyzeHabitData(
+    habit: Habit,
+    checkins: HabitCheckin[],
+    metrics: HabitMetrics | undefined,
+    context: CoachingContext
+  ): Promise<AIInsight> {
+    const recentCheckins = checkins.slice(-7); // Last 7 days
+    const completionRate = recentCheckins.length > 0 
+      ? (recentCheckins.filter(c => c.status !== 'skipped').length / recentCheckins.length) * 100
+      : 0;
+
+    let content = '';
+    let action = '';
+    let microChallenge = '';
+
+    if (completionRate >= 80) {
+      content = `Excellent consistency with ${habit.title}! You're building a strong foundation.`;
+      action = `Consider increasing the difficulty or adding a related habit`;
+      microChallenge = `Maintain this streak for 5 more days`;
+    } else if (completionRate >= 50) {
+      content = `Good progress with ${habit.title}. There's room for improvement.`;
+      action = `Try setting a reminder 15 minutes before the habit window`;
+      microChallenge = `Complete this habit 4 times this week`;
+    } else {
+      content = `${habit.title} needs attention. Let's make it easier to succeed.`;
+      action = `Reduce the dose or move to a different time`;
+      microChallenge = `Try this habit just 2 times this week`;
+    }
+
+    return {
+      id: `habit-${context.userId}-${habit.id}`,
+      userId: context.userId,
+      habitId: habit.id,
+      type: 'habit',
+      content,
+      action,
+      microChallenge,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    };
+  }
+
+  /**
+   * Analyze new habit for guidance
+   */
+  private async analyzeNewHabit(habit: Habit, context: CoachingContext): Promise<AIInsight> {
+    const similarHabits = context.habits.filter(h => h.moment === habit.moment);
+    const momentHabits = similarHabits.length;
+
+    let content = '';
+    let action = '';
+    let microChallenge = '';
+
+    if (momentHabits === 0) {
+      content = `Great choice! ${habit.title} will be your first ${habit.moment} habit.`;
+      action = `Set a reminder for ${habit.window.start}`;
+      microChallenge = `Complete this habit 3 times this week`;
+    } else if (momentHabits < 3) {
+      content = `Adding ${habit.title} to your ${habit.moment} routine. You're building a balanced schedule.`;
+      action = `Space this habit 30 minutes apart from others`;
+      microChallenge = `Complete this habit 4 times this week`;
+    } else {
+      content = `Your ${habit.moment} moment is getting busy. Consider if you can handle another habit.`;
+      action = `Review your ${habit.moment} habits and prioritize`;
+      microChallenge = `Complete this habit 2 times this week`;
+    }
+
+    return {
+      id: `oncreate-${context.userId}-${habit.id}`,
+      userId: context.userId,
+      habitId: habit.id,
+      type: 'onCreate',
+      content,
+      action,
+      microChallenge,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    };
+  }
+
+  /**
+   * Get fallback insights when AI analysis fails
+   */
+  private getFallbackInsights(context: CoachingContext): AIInsight[] {
+    return [{
+      id: `fallback-${context.userId}-${Date.now()}`,
+      userId: context.userId,
+      type: 'weekly',
+      content: 'Keep up the great work! Consistency is key to building lasting habits.',
+      action: 'Review your progress and celebrate small wins',
+      microChallenge: 'Complete one habit from each moment today',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    }];
+  }
+
+  private getFallbackHabitInsight(context: CoachingContext): AIInsight {
+    return {
+      id: `fallback-habit-${context.userId}-${Date.now()}`,
+      userId: context.userId,
+      type: 'habit',
+      content: 'Every habit counts, no matter how small. Keep moving forward!',
+      action: 'Try to complete this habit at least once today',
+      microChallenge: 'Complete this habit 2 times this week',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    };
+  }
+
+  private getFallbackOnCreateInsight(habit: Habit, context: CoachingContext): AIInsight {
+    return {
+      id: `fallback-oncreate-${context.userId}-${habit.id}`,
+      userId: context.userId,
+      habitId: habit.id,
+      type: 'onCreate',
+      content: `Welcome to your new habit: ${habit.title}! Start small and build consistency.`,
+      action: `Set a reminder and start with the first step`,
+      microChallenge: `Complete this habit 3 times this week`,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    };
+  }
+
+  /**
+   * Clear expired cache entries
+   */
+  public clearExpiredCache(): void {
+    const now = new Date();
+    for (const [key, value] of this.insightsCache.entries()) {
+      if (value.expiresAt <= now) {
+        this.insightsCache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Get week start date (Monday)
+   */
+  private getWeekStart(): Date {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    return new Date(now.setDate(diff));
+  }
+
+  /**
+   * Get week end date (Sunday)
+   */
+  private getWeekEnd(): Date {
+    const weekStart = this.getWeekStart();
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    return weekEnd;
   }
 }
 
-// Export singleton instance
 export const aiCoachingEngine = AICoachingEngine.getInstance();
