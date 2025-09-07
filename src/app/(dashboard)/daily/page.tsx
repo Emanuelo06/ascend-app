@@ -14,7 +14,7 @@ import {
   Pause, 
   SkipForward, 
   Target,
-  TrendingUp,
+  TrendingUp, 
   Calendar,
   Sparkles,
   Plus,
@@ -22,7 +22,26 @@ import {
   MinusCircle,
   XCircle,
   Edit3,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  MoreHorizontal,
+  RotateCcw,
+  Archive,
+  Eye,
+  Settings,
+  Brain,
+  Zap,
+  Activity,
+  Award,
+  Users,
+  Heart,
+  BookOpen,
+  Dumbbell,
+  DollarSign,
+  Sun,
+  Moon,
+  Coffee
 } from 'lucide-react';
 import CreateHabitModal from '@/components/CreateHabitModal';
 
@@ -35,6 +54,11 @@ export default function DailyPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+  const [expandedMoments, setExpandedMoments] = useState<Set<string>>(new Set(['morning']));
+  const [showHabitDetails, setShowHabitDetails] = useState<string | null>(null);
+  const [habitStats, setHabitStats] = useState<Record<string, { streak: number; completionRate: number; lastCompleted: string | null }>>({});
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
 
   useEffect(() => {
     // Get current moment
@@ -58,6 +82,8 @@ export default function DailyPage() {
           title: 'Morning Prayer',
           purpose: 'Start the day with gratitude and spiritual connection',
           moment: 'morning',
+          category: 'spiritual',
+          priority: 'high',
           cadence: { type: 'daily' },
           dose: { unit: 'minutes', target: 10 },
           window: { start: '07:00', end: '11:00' },
@@ -72,6 +98,8 @@ export default function DailyPage() {
           title: 'Hydration',
           purpose: 'Stay hydrated throughout the day',
           moment: 'morning',
+          category: 'physical',
+          priority: 'medium',
           cadence: { type: 'daily' },
           dose: { unit: 'liters', target: 2 },
           window: { start: '06:00', end: '22:00' },
@@ -86,6 +114,8 @@ export default function DailyPage() {
           title: 'Deep Work',
           purpose: 'Uninterrupted focused work sessions',
           moment: 'morning',
+          category: 'mental',
+          priority: 'high',
           cadence: { type: 'weekdays' },
           dose: { unit: 'minutes', target: 90 },
           window: { start: '08:00', end: '12:00' },
@@ -100,6 +130,8 @@ export default function DailyPage() {
           title: 'Mindful Breaks',
           purpose: 'Take intentional breaks to maintain focus',
           moment: 'midday',
+          category: 'mental',
+          priority: 'low',
           cadence: { type: 'daily' },
           dose: { unit: 'minutes', target: 5 },
           window: { start: '12:00', end: '14:00' },
@@ -114,6 +146,8 @@ export default function DailyPage() {
           title: 'Evening Reflection',
           purpose: 'End the day with gratitude and prayer',
           moment: 'evening',
+          category: 'spiritual',
+          priority: 'medium',
           cadence: { type: 'daily' },
           dose: { unit: 'minutes', target: 5 },
           window: { start: '20:00', end: '22:00' },
@@ -246,7 +280,7 @@ export default function DailyPage() {
             ? { ...c, status, effort: effort as 0 | 1 | 2 | 3, editedAt: new Date().toISOString() }
             : c
         ));
-      } else {
+    } else {
         const newCheckin: HabitCheckin = {
           id: `${habitId}-${today}`,
           userId: 'demo-user',
@@ -270,11 +304,26 @@ export default function DailyPage() {
     };
     setHabits(prev => [newHabit, ...prev]);
     setShowCreateModal(false);
+    
+    // Initialize stats for the new habit
+    setHabitStats(prev => ({
+      ...prev,
+      [newHabit.id]: {
+        streak: 0,
+        completionRate: 0,
+        lastCompleted: null
+      }
+    }));
   };
 
   const handleDeleteHabit = (habitId: string) => {
     setHabits(prev => prev.filter(h => h.id !== habitId));
     setCheckins(prev => prev.filter(c => c.habitId !== habitId));
+  };
+
+  const handleEditHabit = (habit: Habit) => {
+    setEditingHabit(habit);
+    setShowCreateModal(true);
   };
 
   const handleArchiveHabit = (habitId: string) => {
@@ -324,6 +373,65 @@ export default function DailyPage() {
     return Math.round((completedHabits / totalHabits) * 100);
   };
 
+  const toggleMomentExpansion = (momentName: string) => {
+    setExpandedMoments(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(momentName)) {
+        newSet.delete(momentName);
+      } else {
+        newSet.add(momentName);
+      }
+      return newSet;
+    });
+  };
+
+  const getHabitStats = (habitId: string) => {
+    if (!habitStats[habitId]) {
+      // Initialize stats if they don't exist
+      const habit = habits.find(h => h.id === habitId);
+      if (habit) {
+        const stats = {
+          streak: Math.floor(Math.random() * 7) + 1,
+          completionRate: Math.floor(Math.random() * 40) + 60,
+          lastCompleted: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        };
+        setHabitStats(prev => ({ ...prev, [habitId]: stats }));
+        return stats;
+      }
+      return { streak: 0, completionRate: 0, lastCompleted: null };
+    }
+    return habitStats[habitId];
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'spiritual': return Heart;
+      case 'physical': return Dumbbell;
+      case 'mental': return Brain;
+      case 'relational': return Users;
+      case 'financial': return DollarSign;
+      default: return Target;
+    }
+  };
+
+  const getDifficultyColor = (difficulty: number) => {
+    switch (difficulty) {
+      case 1: return 'text-green-400';
+      case 2: return 'text-yellow-400';
+      case 3: return 'text-red-400';
+      default: return 'text-blue-400';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'low': return 'text-blue-400';
+      case 'medium': return 'text-yellow-400';
+      case 'high': return 'text-red-400';
+      default: return 'text-gray-400';
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -364,15 +472,15 @@ export default function DailyPage() {
               <p className="text-blue-200 text-lg">
                 {currentMoment ? `Focus on your ${currentMoment.name.toLowerCase()} rituals` : 'Plan your day with intention'}
               </p>
-            </div>
+              </div>
             <div className="flex items-center space-x-4">
-              <button
+            <button 
                 onClick={() => setShowCreateModal(true)}
                 className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center space-x-2"
-              >
+            >
                 <Plus className="w-5 h-5" />
                 <span>Create Habit</span>
-              </button>
+            </button>
               <div className="text-right">
                 <div className="text-3xl font-bold text-white">
                   {new Date().toLocaleDateString('en-US', { 
@@ -410,16 +518,16 @@ export default function DailyPage() {
                     <div>
                       <h2 className="text-2xl font-bold text-white mb-2">
                         {currentMoment.name} Focus
-                      </h2>
+          </h2>
                       <p className="text-blue-200 text-lg">
                         {currentMoment.startTime} - {currentMoment.endTime}
-                      </p>
-                    </div>
+          </p>
+        </div>
                     <div className={`p-4 rounded-2xl ${currentMoment.color} shadow-lg`}>
                       <currentMoment.icon className="w-8 h-8 text-white" />
-                    </div>
-                  </div>
-                  
+            </div>
+          </div>
+
                   <div className="grid gap-4">
                     {habits
                       .filter(habit => habit.moment === currentMoment.id && !habit.archived)
@@ -447,7 +555,7 @@ export default function DailyPage() {
                                       <Trash2 className="w-4 h-4 text-red-400" />
                                     </button>
                                   </div>
-                                </div>
+            </div>
                                 <p className="text-blue-200 text-sm mb-3">{habit.purpose}</p>
                                 <div className="flex items-center space-x-4 text-sm text-blue-200">
                                   <span className="flex items-center">
@@ -460,8 +568,8 @@ export default function DailyPage() {
                                       {habit.dose.target} {habit.dose.unit}
                                     </span>
                                   )}
-                                </div>
-                              </div>
+          </div>
+            </div>
                               <div className="ml-6">
                                 <div className="w-24 h-24 relative">
                                   <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
@@ -489,14 +597,14 @@ export default function DailyPage() {
                                   </svg>
                                   <div className="absolute inset-0 flex items-center justify-center">
                                     <span className="text-lg font-bold text-white">{progress}%</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            
+          </div>
+            </div>
+          </div>
+        </div>
+
                             <div className="flex items-center justify-between">
                               <div className="flex space-x-3">
-                                <button
+          <button
                                   onClick={() => handleCheckin(habit.id, 'done', 3)}
                                   className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
                                     checkin?.status === 'done'
@@ -506,8 +614,8 @@ export default function DailyPage() {
                                 >
                                   <CheckCircle className="w-5 h-5 mr-2 inline" />
                                   Done
-                                </button>
-                                <button
+          </button>
+          <button
                                   onClick={() => handleCheckin(habit.id, 'partial', 2)}
                                   className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
                                     checkin?.status === 'partial'
@@ -517,8 +625,8 @@ export default function DailyPage() {
                                 >
                                   <MinusCircle className="w-5 h-5 mr-2 inline" />
                                   Partial
-                                </button>
-                                <button
+          </button>
+          <button
                                   onClick={() => handleCheckin(habit.id, 'skipped', 1)}
                                   className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
                                     checkin?.status === 'skipped'
@@ -528,29 +636,29 @@ export default function DailyPage() {
                                 >
                                   <XCircle className="w-5 h-5 mr-2 inline" />
                                   Skip
-                                </button>
-                              </div>
-                              
+          </button>
+        </div>
+
                               {checkin && (
-                                <div className="text-right">
+              <div className="text-right">
                                   <div className="text-sm text-blue-200 mb-1">
                                     Effort: {checkin.effort}/3
-                                  </div>
+              </div>
                                   {checkin.note && (
                                     <div className="text-xs text-blue-300 italic">
                                       &quot;{checkin.note}&quot;
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+            </div>
+                          )}
+                        </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
+                        );
+                      })}
+            </div>
+            </div>
+          </div>
+        )}
 
             {/* All Moments Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -561,21 +669,34 @@ export default function DailyPage() {
                   return checkin && checkin.status === 'done';
                 });
                 const completionRate = momentHabits.length > 0 ? (completedHabits.length / momentHabits.length) * 100 : 0;
+                const isExpanded = expandedMoments.has(moment.id);
                 
                 return (
-                  <div key={moment.id} className="backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+                  <div key={moment.id} className="backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300">
                     <div className={`bg-gradient-to-r ${moment.color} rounded-t-2xl p-6`}>
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="text-xl font-bold text-white mb-1">{moment.name}</h3>
                           <p className="text-white/80 text-sm">{moment.startTime} - {moment.endTime}</p>
                         </div>
-                        <div className={`p-3 rounded-xl bg-white/20 backdrop-blur-sm`}>
-                          <moment.icon className="w-6 h-6 text-white" />
+                        <div className="flex items-center space-x-2">
+                          <div className={`p-3 rounded-xl bg-white/20 backdrop-blur-sm`}>
+                            <moment.icon className="w-6 h-6 text-white" />
+                          </div>
+                          <button
+                            onClick={() => toggleMomentExpansion(moment.id)}
+                            className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4 text-white" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-white" />
+                            )}
+                          </button>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="p-6">
                       <div className="mb-4">
                         <div className="flex justify-between text-sm text-blue-200 mb-2">
@@ -593,13 +714,129 @@ export default function DailyPage() {
                         </div>
                       </div>
                       
-                      <div className="text-center">
+                      <div className="text-center mb-4">
                         <div className="text-2xl font-bold text-white mb-1">
                           {completedHabits.length}/{momentHabits.length}
                         </div>
                         <div className="text-blue-200 text-sm">habits completed</div>
                       </div>
-                      
+
+                      {/* Expandable Habit List */}
+                      {isExpanded && momentHabits.length > 0 && (
+                        <div className="space-y-3 mb-4">
+                          {momentHabits.map(habit => {
+                            const checkin = getCheckinForHabit(habit.id, new Date().toISOString().split('T')[0]);
+                            const stats = getHabitStats(habit.id);
+                            const CategoryIcon = getCategoryIcon(habit.category || 'spiritual');
+                            
+                            return (
+                              <div key={habit.id} className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center space-x-3">
+                                    <CategoryIcon className={`w-5 h-5 ${getDifficultyColor(habit.difficulty)}`} />
+                                    <div>
+                                      <h4 className="text-white font-semibold text-sm">{habit.title}</h4>
+                                      <p className="text-blue-200 text-xs">{habit.purpose}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(habit.priority || 'medium')}`}>
+                                      {habit.priority || 'medium'}
+                                    </span>
+                                    <button
+                                      onClick={() => setShowHabitDetails(showHabitDetails === habit.id ? null : habit.id)}
+                                      className="p-1 rounded hover:bg-white/10 transition-colors"
+                                    >
+                                      <MoreHorizontal className="w-4 h-4 text-blue-200" />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Habit Details */}
+                                {showHabitDetails === habit.id && (
+                                  <div className="space-y-3 pt-3 border-t border-white/10">
+                                    <div className="grid grid-cols-3 gap-3 text-center">
+                                      <div>
+                                        <div className="text-lg font-bold text-green-400">{stats.streak}</div>
+                                        <div className="text-blue-200 text-xs">Day Streak</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-lg font-bold text-blue-400">{stats.completionRate}%</div>
+                                        <div className="text-blue-200 text-xs">Success Rate</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-lg font-bold text-purple-400">
+                                          {habit.dose?.target || 0} {habit.dose?.unit || 'units'}
+                                        </div>
+                                        <div className="text-blue-200 text-xs">Target</div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex space-x-2">
+                                      <button
+                                        onClick={() => handleEditHabit(habit)}
+                                        className="flex-1 px-3 py-2 bg-blue-500/20 text-blue-200 rounded-lg border border-blue-400/30 hover:bg-blue-500/30 transition-colors text-sm"
+                                      >
+                                        <Edit3 className="w-4 h-4 mr-1 inline" />
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => handleArchiveHabit(habit.id)}
+                                        className="px-3 py-2 bg-yellow-500/20 text-yellow-200 rounded-lg border border-yellow-400/30 hover:bg-yellow-500/30 transition-colors text-sm"
+                                      >
+                                        <Archive className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteHabit(habit.id)}
+                                        className="px-3 py-2 bg-red-500/20 text-red-200 rounded-lg border border-red-400/30 hover:bg-red-500/30 transition-colors text-sm"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Check-in Status */}
+                                <div className="flex items-center justify-between">
+                                  <div className="text-xs text-blue-300">
+                                    {habit.window.start} - {habit.window.end}
+                                  </div>
+                                  <div className="flex space-x-2">
+                                    {checkin ? (
+                                      <div className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(checkin.status)}`}>
+                                        {getStatusIcon(checkin.status)}
+                                        <span className="ml-1 capitalize">{checkin.status}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex space-x-1">
+                                        <button
+                                          onClick={() => handleCheckin(habit.id, 'done', 2)}
+                                          className="px-3 py-1 bg-green-500/20 text-green-200 rounded-full text-xs border border-green-400/30 hover:bg-green-500/30 transition-colors"
+                                        >
+                                          Done
+                                        </button>
+                                        <button
+                                          onClick={() => handleCheckin(habit.id, 'partial', 1)}
+                                          className="px-3 py-1 bg-yellow-500/20 text-yellow-200 rounded-full text-xs border border-yellow-400/30 hover:bg-yellow-500/30 transition-colors"
+                                        >
+                                          Partial
+                                        </button>
+                                        <button
+                                          onClick={() => handleCheckin(habit.id, 'skipped', 0)}
+                                          className="px-3 py-1 bg-red-500/20 text-red-200 rounded-full text-xs border border-red-400/30 hover:bg-red-500/30 transition-colors"
+                                        >
+                                          Skip
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
                       {momentHabits.length === 0 && (
                         <div className="text-center py-4">
                           <div className="text-blue-200 text-sm mb-2">No habits scheduled</div>
@@ -627,7 +864,7 @@ export default function DailyPage() {
                       const checkin = checkins.find(c => c.habitId === habit.id && c.date === new Date().toISOString().split('T')[0]);
                       return checkin && checkin.status === 'done';
                     }).length}
-                  </div>
+                    </div>
                   <div className="text-blue-200">Completed</div>
                 </div>
                 <div className="text-center">
@@ -636,16 +873,16 @@ export default function DailyPage() {
                       const checkin = checkins.find(c => c.habitId === habit.id && c.date === new Date().toISOString().split('T')[0]);
                       return checkin && checkin.status === 'partial';
                     }).length}
-                  </div>
+              </div>
                   <div className="text-blue-200">Partial</div>
-                </div>
+            </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-red-400 mb-2">
                     {habits.filter(habit => {
                       const checkin = checkins.find(c => c.habitId === habit.id && c.date === new Date().toISOString().split('T')[0]);
                       return checkin && checkin.status === 'skipped';
                     }).length}
-                  </div>
+                    </div>
                   <div className="text-blue-200">Skipped</div>
                 </div>
                 <div className="text-center">
@@ -654,7 +891,7 @@ export default function DailyPage() {
                       const checkin = checkins.find(c => c.habitId === habit.id && c.date === new Date().toISOString().split('T')[0]);
                       return !checkin;
                     }).length}
-                  </div>
+              </div>
                   <div className="text-blue-200">Pending</div>
                 </div>
               </div>
@@ -664,11 +901,12 @@ export default function DailyPage() {
       </div>
 
       {/* Create Habit Modal */}
-      <CreateHabitModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSave={handleCreateHabit}
-      />
+              <CreateHabitModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSubmit={handleCreateHabit}
+          userId="demo-user"
+        />
     </div>
   );
 }

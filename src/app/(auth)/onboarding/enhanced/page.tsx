@@ -104,8 +104,32 @@ export default function EnhancedOnboardingPage() {
     // Store in localStorage for demo purposes
     localStorage.setItem('ascend_onboarding_data', JSON.stringify(finalData));
     
-    // Redirect to dashboard
-    router.push('/dashboard');
+    // Update user data to mark onboarding as completed
+    const userData = localStorage.getItem('ascend_user_data');
+    if (userData) {
+      const user = JSON.parse(userData);
+      const updatedUser = {
+        ...user,
+        onboarding_completed: true,
+        goals: selectedGoals,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Update stored user data
+      localStorage.setItem('ascend_user_data', JSON.stringify(updatedUser));
+      
+      // Update user in users list
+      const storedUsers = localStorage.getItem('ascend_users') || '[]';
+      const users = JSON.parse(storedUsers);
+      const userIndex = users.findIndex((u: any) => u.id === user.id);
+      if (userIndex !== -1) {
+        users[userIndex] = { ...users[userIndex], ...updatedUser };
+        localStorage.setItem('ascend_users', JSON.stringify(users));
+      }
+    }
+    
+    // Redirect to assessment since onboarding is complete
+    router.push('/assessment');
   };
 
   const canProceed = () => {
@@ -124,20 +148,20 @@ export default function EnhancedOnboardingPage() {
       case 1:
         return <WelcomeStep />;
       case 2:
-        return <GoalsStep selectedGoals={selectedGoals} onGoalToggle={handleGoalToggle} />;
+        return <GoalsStep selectedGoals={selectedGoals} onGoalToggle={toggleGoal} />;
       case 3:
         return <StarterPackStep selectedPack={selectedPack} onPackSelect={handlePackSelect} />;
       case 4:
         return <ScheduleStep 
           morningTime={onboardingData.morningTime} 
-          onTimeChange={(time) => updateOnboardingData({ morningTime: time })} 
+          onTimeChange={(time) => updateOnboardingData('morningTime', time)} 
         />;
       case 5:
         return <NotificationsStep 
           notifications={onboardingData.notifications}
           quietHours={onboardingData.quietHours}
-          onNotificationsChange={(enabled) => updateOnboardingData({ notifications: enabled })}
-          onQuietHoursChange={(hours) => updateOnboardingData({ quietHours: hours })}
+          onNotificationsChange={(enabled) => updateOnboardingData('notifications', enabled)}
+          onQuietHoursChange={(hours) => updateOnboardingData('quietHours', hours)}
         />;
       default:
         return <WelcomeStep />;

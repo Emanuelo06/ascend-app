@@ -145,6 +145,25 @@ CREATE TABLE IF NOT EXISTS user_habits (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Daily Reflections Table
+CREATE TABLE IF NOT EXISTS daily_reflections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  mood INTEGER CHECK (mood >= 1 AND mood <= 10),
+  energy INTEGER CHECK (energy >= 1 AND energy <= 10),
+  gratitude TEXT,
+  challenges TEXT,
+  wins TEXT,
+  tomorrow_focus TEXT,
+  sleep_hours DECIMAL(3,1) CHECK (sleep_hours >= 0 AND sleep_hours <= 24),
+  stress_level INTEGER CHECK (stress_level >= 1 AND stress_level <= 10),
+  productivity INTEGER CHECK (productivity >= 1 AND productivity <= 10),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, date)
+);
+
 -- Habit Tracking Table
 CREATE TABLE IF NOT EXISTS habit_tracking (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -180,6 +199,7 @@ CREATE INDEX IF NOT EXISTS idx_user_daily_content_user_date ON user_daily_conten
 CREATE INDEX IF NOT EXISTS idx_ai_recommendations_user_priority ON ai_recommendations(user_id, priority);
 CREATE INDEX IF NOT EXISTS idx_user_habits_user_active ON user_habits(user_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_habit_tracking_user_habit_date ON habit_tracking(user_id, habit_id, date);
+CREATE INDEX IF NOT EXISTS idx_daily_reflections_user_date ON daily_reflections(user_id, date);
 
 -- Create Updated At Triggers
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -193,6 +213,7 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_goals_updated_at BEFORE UPDATE ON user_goals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_habits_updated_at BEFORE UPDATE ON user_habits FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_daily_reflections_updated_at BEFORE UPDATE ON daily_reflections FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
@@ -207,6 +228,7 @@ ALTER TABLE user_daily_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_recommendations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE habit_tracking ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_reflections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS Policies
@@ -248,6 +270,10 @@ CREATE POLICY "Users can update own habits" ON user_habits FOR UPDATE USING (aut
 CREATE POLICY "Users can view own habit tracking" ON habit_tracking FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own habit tracking" ON habit_tracking FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own habit tracking" ON habit_tracking FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own daily reflections" ON daily_reflections FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own daily reflections" ON daily_reflections FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own daily reflections" ON daily_reflections FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can view own achievements" ON user_achievements FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own achievements" ON user_achievements FOR INSERT WITH CHECK (auth.uid() = user_id);

@@ -166,6 +166,34 @@ export default function AssessmentQuestionsPage() {
 
       localStorage.setItem('assessmentResults', JSON.stringify(assessmentResults));
       
+      // Update user data with assessment scores
+      const userData = localStorage.getItem('ascend_user_data');
+      if (userData) {
+        const user = JSON.parse(userData);
+        const updatedUser = {
+          ...user,
+          totalScore: totalScore,
+          physicalScore: finalScores.physical || 0,
+          mentalScore: finalScores.mental || 0,
+          spiritualScore: finalScores.spiritual || 0,
+          relationalScore: finalScores.relational || 0,
+          financialScore: finalScores.financial || 0,
+          updated_at: new Date().toISOString()
+        };
+        
+        // Update stored user data
+        localStorage.setItem('ascend_user_data', JSON.stringify(updatedUser));
+        
+        // Update user in users list
+        const storedUsers = localStorage.getItem('ascend_users') || '[]';
+        const users = JSON.parse(storedUsers);
+        const userIndex = users.findIndex((u: any) => u.id === user.id);
+        if (userIndex !== -1) {
+          users[userIndex] = { ...users[userIndex], ...updatedUser };
+          localStorage.setItem('ascend_users', JSON.stringify(users));
+        }
+      }
+      
       // Redirect to results page
       router.push('/assessment/results');
     } catch (error) {

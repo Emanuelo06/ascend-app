@@ -424,6 +424,8 @@ export interface Habit {
   title: string;
   purpose?: string;
   moment: 'morning' | 'midday' | 'evening' | 'custom';
+  category?: 'spiritual' | 'physical' | 'mental' | 'relational' | 'financial';
+  priority?: 'low' | 'medium' | 'high';
   cadence: {
     type: 'daily' | 'weekdays' | 'custom';
     rrule?: string;

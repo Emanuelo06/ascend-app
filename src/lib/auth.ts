@@ -1,6 +1,35 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { config, getSafeConfig, logConfig } from './config';
 
+// Google OAuth configuration
+const GOOGLE_OAUTH_CONFIG = {
+  clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+  redirectUri: typeof window !== 'undefined' 
+    ? `${window.location.origin}/auth/callback`
+    : 'http://localhost:3000',
+  scope: 'openid email profile',
+  responseType: 'code'
+};
+
+// Debug function to log OAuth config
+const debugOAuthConfig = () => {
+  console.log('🔧 OAuth Config Debug:');
+  console.log('  Client ID:', GOOGLE_OAUTH_CONFIG.clientId);
+  console.log('  Redirect URI:', GOOGLE_OAUTH_CONFIG.redirectUri);
+  console.log('  Scope:', GOOGLE_OAUTH_CONFIG.scope);
+  console.log('  Response Type:', GOOGLE_OAUTH_CONFIG.responseType);
+  console.log('  Environment:', process.env.NODE_ENV);
+};
+
+// Function to get the current redirect URI dynamically
+const getCurrentRedirectUri = () => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/auth/callback`;
+  }
+  // Fallback to common ports
+  return 'http://localhost:3000/auth/callback';
+};
+
 // Log configuration for debugging
 logConfig();
 
@@ -140,5 +169,109 @@ export const updatePassword = async (password: string) => {
     return { error: null };
   } catch (error) {
     return { error: error as Error };
+  }
+};
+
+// Google OAuth functions
+export const signInWithGoogle = async () => {
+  if (!GOOGLE_OAUTH_CONFIG.clientId) {
+    return { error: new Error('Google OAuth is not configured. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID.') };
+  }
+  
+  try {
+    const currentRedirectUri = getCurrentRedirectUri();
+    
+    // Debug the OAuth configuration
+    debugOAuthConfig();
+    console.log('🌐 Current origin:', window.location.origin);
+    console.log('🎯 Using redirect URI:', currentRedirectUri);
+    
+    // Build Google OAuth URL with all required parameters
+    const googleAuthUrl = new URL('https://accounts.google.com/oauth/authorize');
+    googleAuthUrl.searchParams.append('client_id', GOOGLE_OAUTH_CONFIG.clientId);
+    googleAuthUrl.searchParams.append('redirect_uri', currentRedirectUri);
+    googleAuthUrl.searchParams.append('scope', GOOGLE_OAUTH_CONFIG.scope);
+    googleAuthUrl.searchParams.append('response_type', GOOGLE_OAUTH_CONFIG.responseType);
+    googleAuthUrl.searchParams.append('access_type', 'offline');
+    googleAuthUrl.searchParams.append('prompt', 'consent');
+    googleAuthUrl.searchParams.append('state', 'google-oauth'); // Add state parameter
+    
+    const finalUrl = googleAuthUrl.toString();
+    console.log('🔗 Final Google OAuth URL:', finalUrl);
+    
+    // Validate the URL before redirecting
+    if (!finalUrl.includes('client_id=') || !finalUrl.includes('redirect_uri=')) {
+      throw new Error('Invalid Google OAuth URL generated');
+    }
+    
+    // Redirect to Google OAuth
+    window.location.href = finalUrl;
+    
+    return { error: null };
+  } catch (error) {
+    console.error('❌ Google OAuth error:', error);
+    return { error: error as Error };
+  }
+};
+
+export const handleGoogleCallback = async (code: string) => {
+  if (!GOOGLE_OAUTH_CONFIG.clientId) {
+    return { error: new Error('Google OAuth is not configured.') };
+  }
+  
+  try {
+    const currentRedirectUri = getCurrentRedirectUri();
+    
+    // Exchange authorization code for access token
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: GOOGLE_OAUTH_CONFIG.clientId,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: currentRedirectUri,
+      }),
+    });
+    
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to exchange authorization code for token');
+    }
+    
+    const tokenData = await tokenResponse.json();
+    
+    // Get user info from Google
+    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+      },
+    });
+    
+    if (!userInfoResponse.ok) {
+      throw new Error('Failed to get user info from Google');
+    }
+    
+    const userInfo = await userInfoResponse.json();
+    
+    // Create or sign in user with Supabase
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        queryParams: {
+          access_token: tokenData.access_token,
+          id_token: tokenData.id_token,
+        },
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    
+    if (error) throw error;
+    
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error: error as Error };
   }
 };

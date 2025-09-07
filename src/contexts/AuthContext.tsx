@@ -34,9 +34,11 @@ interface AuthContextType {
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error?: string }>;
+  signInWithGoogle: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   checkAuth: () => Promise<void>;
   updateUserData: (data: Partial<User>) => void;
+  getRedirectPath: (user: User) => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -161,6 +163,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async (): Promise<{ error?: string }> => {
+    try {
+      setIsLoading(true);
+      
+      // Import and use the real Google OAuth function
+      const { signInWithGoogle: realGoogleSignIn } = await import('@/lib/auth');
+      const result = await realGoogleSignIn();
+      
+      if (result.error) {
+        return { error: result.error.message };
+      }
+      
+      // The real function will redirect to Google OAuth
+      // We don't need to do anything else here
+      return {};
+    } catch (error) {
+      return { error: 'Google sign-in failed' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const signOut = async () => {
     try {
       // Clear auth data
@@ -193,14 +217,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const getRedirectPath = (user: User): string => {
+    // If user hasn't completed onboarding, send them to onboarding
+    if (!user.onboarding_completed) {
+      return '/onboarding/goals';
+    }
+    
+    // If user has completed onboarding but no assessment score, send them to assessment
+    if (user.totalScore === 0) {
+      return '/assessment';
+    }
+    
+    // User has completed both onboarding and assessment, send to dashboard
+    return '/dashboard';
+  };
+
   const value = {
     user,
     isLoading,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
     checkAuth,
-    updateUserData
+    updateUserData,
+    getRedirectPath
   };
 
   return (

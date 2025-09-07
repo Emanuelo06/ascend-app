@@ -28,14 +28,14 @@ import SocialAccountability from '@/components/SocialAccountability';
 import AIPersonalization from '@/components/AIPersonalization';
 import AdaptiveLearning from '@/components/AdaptiveLearning';
 import PredictiveAnalytics from '@/components/PredictiveAnalytics';
-import NeuralHabitEngine from '@/components/NeuralHabitEngine';
-import RealTimeOptimizer from '@/components/RealTimeOptimizer';
+import EnhancedHabitDashboard from '@/components/EnhancedHabitDashboard';
+import HabitInsightsEngine from '@/components/HabitInsightsEngine';
 
 export default function AnalyticsPage() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [checkins, setCheckins] = useState<HabitCheckin[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'ai-insights' | 'advanced-insights' | 'notifications' | 'trends' | 'social' | 'ai-personalization' | 'adaptive-learning' | 'predictive' | 'neural-engine' | 'real-time' | 'advanced-predictive'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'enhanced-dashboard' | 'insights-engine' | 'analytics' | 'ai-insights' | 'advanced-insights' | 'notifications' | 'trends' | 'social' | 'ai-personalization' | 'adaptive-learning' | 'predictive'>('overview');
 
   useEffect(() => {
     // Load mock data for demonstration
@@ -161,6 +161,8 @@ export default function AnalyticsPage() {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'enhanced-dashboard', label: 'Enhanced Dashboard', icon: BarChart3 },
+    { id: 'insights-engine', label: 'Insights Engine', icon: Brain },
     { id: 'analytics', label: 'Habit Analytics', icon: Target },
     { id: 'ai-insights', label: 'AI Insights', icon: Brain },
     { id: 'advanced-insights', label: 'Advanced Insights', icon: TrendingUp },
@@ -169,10 +171,7 @@ export default function AnalyticsPage() {
     { id: 'social', label: 'Social & Community', icon: Users },
     { id: 'ai-personalization', label: 'AI Personalization', icon: Lightbulb },
     { id: 'adaptive-learning', label: 'Adaptive Learning', icon: Target },
-    { id: 'predictive', label: 'Predictive Analytics', icon: TrendingUp },
-    { id: 'neural-engine', label: 'Neural Engine', icon: Brain },
-    { id: 'real-time', label: 'Real-Time', icon: Zap },
-    { id: 'advanced-predictive', label: 'Advanced Predictive', icon: TrendingUp }
+    { id: 'predictive', label: 'Predictive Analytics', icon: TrendingUp }
   ];
 
   if (loading) {
@@ -350,6 +349,24 @@ export default function AnalyticsPage() {
           </div>
         )}
 
+        {activeTab === 'enhanced-dashboard' && (
+          <EnhancedHabitDashboard 
+            userId="demo-user"
+            habits={habits} 
+            checkins={checkins} 
+            metrics={[]} // Mock metrics for now
+          />
+        )}
+
+        {activeTab === 'insights-engine' && (
+          <HabitInsightsEngine 
+            userId="demo-user"
+            habits={habits} 
+            checkins={checkins} 
+            metrics={[]} // Mock metrics for now
+          />
+        )}
+
         {activeTab === 'analytics' && (
           <HabitAnalytics habits={habits} checkins={checkins} />
         )}
@@ -398,17 +415,7 @@ export default function AnalyticsPage() {
           <PredictiveAnalytics habits={habits} checkins={checkins} />
         )}
 
-        {activeTab === 'neural-engine' && (
-          <NeuralHabitEngine />
-        )}
 
-        {activeTab === 'real-time' && (
-          <RealTimeOptimizer />
-        )}
-
-        {activeTab === 'advanced-predictive' && (
-          <PredictiveAnalytics habits={habits} checkins={checkins} />
-        )}
       </div>
     </div>
   );

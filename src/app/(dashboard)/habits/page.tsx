@@ -75,7 +75,15 @@ export default function HabitsPage() {
 
   const loadHabits = async () => {
     try {
-      // Try to load habits from localStorage first
+      // TODO: Replace with real API call once backend is fully set up
+      // const response = await fetch(`/api/habits?userId=demo-user`);
+      // if (response.ok) {
+      //   const data = await response.json();
+      //   setHabits(data.data);
+      //   return;
+      // }
+      
+      // For now, use mock data since we're in development
       const savedHabits = localStorage.getItem('ascend-habits');
       if (savedHabits) {
         const parsedHabits = JSON.parse(savedHabits);
@@ -157,23 +165,69 @@ export default function HabitsPage() {
     }
   };
 
-  const handleCreateHabit = (habitData: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newHabit: Habit = {
-      ...habitData,
-      id: `habit-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    const updatedHabits = [...habits, newHabit];
-    setHabits(updatedHabits);
-    saveHabitsToStorage(updatedHabits);
-    setShowCreateModal(false);
+  const handleCreateHabit = async (habitData: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      // TODO: Replace with real API call once backend is fully set up
+      // const response = await fetch('/api/habits', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     userId: 'demo-user',
+      //     habitName: habitData.title,
+      //     category: habitData.category || 'spiritual',
+      //     frequency: habitData.cadence.type,
+      //     targetCount: habitData.cadence.target || 1,
+      //     description: habitData.purpose,
+      //     priority: habitData.priority || 'medium'
+      //   })
+      // });
+      // 
+      // if (response.ok) {
+      //   const data = await response.json();
+      //   setHabits(prev => [...prev, data.data]);
+      //   setShowCreateModal(false);
+      //   return;
+      // }
+      
+      // For now, use local storage
+      const newHabit: Habit = {
+        ...habitData,
+        id: `habit-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      const updatedHabits = [...habits, newHabit];
+      setHabits(updatedHabits);
+      saveHabitsToStorage(updatedHabits);
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error('Error creating habit:', error);
+      alert('Failed to create habit. Please try again.');
+    }
   };
 
-  const handleDeleteHabit = (habitId: string) => {
-    const updatedHabits = habits.filter(h => h.id !== habitId);
-    setHabits(updatedHabits);
-    saveHabitsToStorage(updatedHabits);
+  const handleDeleteHabit = async (habitId: string) => {
+    try {
+      // TODO: Replace with real API call once backend is fully set up
+      // const response = await fetch(`/api/habits/${habitId}`, {
+      //   method: 'DELETE'
+      // });
+      // 
+      // if (response.ok) {
+      //   const updatedHabits = habits.filter(h => h.id !== habitId);
+      //   setHabits(updatedHabits);
+      //   saveHabitsToStorage(updatedHabits);
+      //   return;
+      // }
+      
+      // For now, use local storage
+      const updatedHabits = habits.filter(h => h.id !== habitId);
+      setHabits(updatedHabits);
+      saveHabitsToStorage(updatedHabits);
+    } catch (error) {
+      console.error('Error deleting habit:', error);
+      alert('Failed to delete habit. Please try again.');
+    }
   };
 
   const handleAddAISuggestedHabit = (aiHabit: any) => {
