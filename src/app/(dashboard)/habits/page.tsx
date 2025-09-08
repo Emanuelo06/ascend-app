@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Habit, HabitCheckin } from '@/types';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { 
   Plus, 
   Edit3, 
@@ -29,6 +30,7 @@ import CreateHabitModal from '@/components/CreateHabitModal';
 import Link from 'next/link';
 
 export default function HabitsPage() {
+  const { user } = useSupabaseAuth();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [checkins, setCheckins] = useState<HabitCheckin[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -75,92 +77,58 @@ export default function HabitsPage() {
 
   const loadHabits = async () => {
     try {
-      // TODO: Replace with real API call once backend is fully set up
-      // const response = await fetch(`/api/habits?userId=demo-user`);
-      // if (response.ok) {
-      //   const data = await response.json();
-      //   setHabits(data.data);
-      //   return;
-      // }
-      
-      // For now, use mock data since we're in development
-      const savedHabits = localStorage.getItem('ascend-habits');
-      if (savedHabits) {
-        const parsedHabits = JSON.parse(savedHabits);
-        setHabits(parsedHabits);
-        
-        // Also restore the added AI habits state
-        const savedAddedAIHabits = localStorage.getItem('ascend-added-ai-habits');
-        if (savedAddedAIHabits) {
-          setAddedAIHabits(new Set(JSON.parse(savedAddedAIHabits)));
-        }
+      if (!user?.id) {
+        console.log('No user ID available');
+        setHabits([]);
         return;
       }
 
-      // If no saved habits, load default mock data
-      const mockHabits: Habit[] = [
-        {
-          id: '1',
-          userId: 'demo-user',
-          title: 'Morning Prayer',
-          purpose: 'Start the day with gratitude and spiritual connection',
-          moment: 'morning',
-          cadence: { type: 'daily' },
-          dose: { unit: 'minutes', target: 10 },
-          window: { start: '07:00', end: '11:00' },
-          difficulty: 2,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          userId: 'demo-user',
-          title: '30-Minute Workout',
-          purpose: 'Build physical strength and energy',
-          moment: 'morning',
-          cadence: { type: 'daily' },
-          dose: { unit: 'minutes', target: 30 },
-          window: { start: '06:00', end: '08:00' },
-          difficulty: 3,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '3',
-          userId: 'demo-user',
-          title: 'Evening Reading',
-          purpose: 'Expand knowledge and relax before bed',
-          moment: 'evening',
-          cadence: { type: 'daily' },
-          dose: { unit: 'pages', target: 20 },
-          window: { start: '20:00', end: '22:00' },
-          difficulty: 1,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '4',
-          userId: 'demo-user',
-          title: 'Hydration Check',
-          purpose: 'Stay hydrated throughout the day',
-          moment: 'midday',
-          cadence: { type: 'daily' },
-          dose: { unit: 'liters', target: 2 },
-          window: { start: '06:00', end: '22:00' },
-          difficulty: 1,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+      // Check if this is a demo user
+      const isDemoUser = user.isDemoUser || localStorage.getItem('ascend-demo-mode') === 'true';
+      
+      if (isDemoUser) {
+        console.log('🚀 Loading demo habits for demo user');
+        const demoHabits = localStorage.getItem('ascend-habits');
+        if (demoHabits) {
+          const habits = JSON.parse(demoHabits);
+          setHabits(habits);
+          return;
         }
-      ];
+      }
 
-      setHabits(mockHabits);
+      console.log('🔄 Loading real user habits for:', user.id);
+      
+      // Load real habits from database
+      const dbHabits = await databaseService.getHabits(user.id);
+      console.log('📊 Loaded habits from database:', dbHabits.length);
+      
+      if (dbHabits.length === 0) {
+        console.log('📝 No habits found - user needs to create habits first');
+        setHabits([]);
+        return;
+      }
+      
+      // Convert database habits to the format expected by the component
+      const userHabits: Habit[] = dbHabits.map(habit => ({
+        id: habit.id,
+        userId: habit.user_id,
+        title: habit.title,
+        purpose: habit.purpose || '',
+        moment: habit.metadata?.moment || 'morning',
+        category: habit.metadata?.category || 'general',
+        priority: habit.metadata?.priority || 'medium',
+        cadence: habit.cadence || { type: 'daily' },
+        dose: habit.dose || { unit: 'times', target: 1 },
+        window: habit.window || { start: '06:00', end: '22:00' },
+        difficulty: habit.difficulty || 1,
+        archived: habit.archived || false,
+        createdAt: habit.created_at,
+        updatedAt: habit.updated_at
+      }));
+
+      setHabits(userHabits);
     } catch (error) {
       console.error('Error loading habits:', error);
-      // Fallback to empty array if there's an error
       setHabits([]);
     }
   };

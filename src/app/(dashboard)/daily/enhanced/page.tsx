@@ -18,116 +18,101 @@ import {
   Sparkles
 } from 'lucide-react';
 
-// Mock data for demo - replace with real data from your backend
-const mockHabits: Habit[] = [
-  {
-    id: '1',
-    userId: 'demo-user',
-    title: 'Morning Prayer',
-    purpose: 'Start the day with gratitude and spiritual connection',
-    moment: 'morning',
-    cadence: { type: 'daily' },
-    dose: { unit: 'minutes', target: 10 },
-    window: { start: '07:00', end: '11:00' },
-    difficulty: 2,
-    archived: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    userId: 'demo-user',
-    title: 'Hydration',
-    purpose: 'Stay hydrated throughout the day',
-    moment: 'morning',
-    cadence: { type: 'daily' },
-    dose: { unit: 'liters', target: 2 },
-    window: { start: '06:00', end: '22:00' },
-    difficulty: 1,
-    archived: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '3',
-    userId: 'demo-user',
-    title: 'Deep Work',
-    purpose: 'Uninterrupted focused work sessions',
-    moment: 'morning',
-    cadence: { type: 'weekdays' },
-    dose: { unit: 'minutes', target: 90 },
-    window: { start: '08:00', end: '12:00' },
-    difficulty: 3,
-    archived: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '4',
-    userId: 'demo-user',
-    title: 'Mindful Breaks',
-    purpose: 'Take intentional breaks to maintain focus',
-    moment: 'midday',
-    cadence: { type: 'daily' },
-    dose: { unit: 'minutes', target: 5 },
-    window: { start: '12:00', end: '14:00' },
-    difficulty: 1,
-    archived: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '5',
-    userId: 'demo-user',
-    title: 'Evening Reflection',
-    purpose: 'End the day with gratitude and prayer',
-    moment: 'evening',
-    cadence: { type: 'daily' },
-    dose: { unit: 'minutes', target: 5 },
-    window: { start: '20:00', end: '22:00' },
-    difficulty: 1,
-    archived: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
-
-const mockCheckins: HabitCheckin[] = [
-  {
-    id: '1',
-    userId: 'demo-user',
-    habitId: '1',
-    date: new Date().toISOString().split('T')[0],
-    status: 'done',
-    effort: 2,
-    doseActual: 10,
-    note: 'Felt very connected today',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    userId: 'demo-user',
-    habitId: '2',
-    date: new Date().toISOString().split('T')[0],
-    status: 'partial',
-    effort: 1,
-    doseActual: 1.5,
-    note: 'Need to drink more water',
-    createdAt: new Date().toISOString()
-  }
-];
+// Real user data will be loaded from database
 
 export default function EnhancedDailyPage() {
-  const [habits, setHabits] = useState<Habit[]>(mockHabits);
-  const [checkins, setCheckins] = useState<HabitCheckin[]>(mockCheckins);
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [checkins, setCheckins] = useState<HabitCheckin[]>([]);
   const [currentMoment, setCurrentMoment] = useState<Moment | null>(null);
   const [showStartAllModal, setShowStartAllModal] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get current moment
     const moment = habitEngine.getCurrentMoment();
     setCurrentMoment(moment);
+    
+    // Load user data
+    loadUserData();
   }, []);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      
+      // Get user from context (you'll need to import useSupabaseAuth)
+      const { useSupabaseAuth } = await import('@/contexts/SupabaseAuthContext');
+      const { user } = useSupabaseAuth();
+      
+      if (!user?.id) {
+        console.log('No user ID available');
+        setHabits([]);
+        setCheckins([]);
+        setLoading(false);
+        return;
+      }
+
+      console.log('🔄 Loading real user habits for enhanced daily page:', user.id);
+      
+      // Load real habits from database
+      const { databaseService } = await import('@/lib/supabase');
+      const dbHabits = await databaseService.getHabits(user.id);
+      console.log('📊 Loaded habits from database:', dbHabits.length);
+      
+      if (dbHabits.length === 0) {
+        console.log('📝 No habits found - user needs to create habits first');
+        setHabits([]);
+        setCheckins([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Convert database habits to the format expected by the component
+      const userHabits: Habit[] = dbHabits.map(habit => ({
+        id: habit.id,
+        userId: habit.user_id,
+        title: habit.title,
+        purpose: habit.purpose || '',
+        moment: habit.metadata?.moment || 'morning',
+        category: habit.metadata?.category || 'general',
+        priority: habit.metadata?.priority || 'medium',
+        cadence: habit.cadence || { type: 'daily' },
+        dose: habit.dose || { unit: 'times', target: 1 },
+        window: habit.window || { start: '06:00', end: '22:00' },
+        difficulty: habit.difficulty || 1,
+        archived: habit.archived || false,
+        createdAt: habit.created_at,
+        updatedAt: habit.updated_at
+      }));
+
+      // Load today's check-ins
+      const today = new Date().toISOString().split('T')[0];
+      const dbCheckins = await databaseService.getHabitCheckins(user.id, undefined, today);
+      console.log('📊 Loaded check-ins for today:', dbCheckins.length);
+      
+      const userCheckins: HabitCheckin[] = dbCheckins.map(checkin => ({
+        id: checkin.id,
+        userId: checkin.user_id,
+        habitId: checkin.habit_id,
+        date: checkin.date,
+        status: checkin.completed ? 'done' : 'pending',
+        effort: checkin.effort || 1,
+        doseActual: checkin.dose_actual || 0,
+        note: checkin.notes || '',
+        createdAt: checkin.created_at
+      }));
+
+      setHabits(userHabits);
+      setCheckins(userCheckins);
+      
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      setHabits([]);
+      setCheckins([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getHabitsForMoment = (momentName: string) => {
     return habits.filter(habit => habit.moment === momentName);

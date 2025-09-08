@@ -43,6 +43,24 @@ export default function UserFlowManager({ children }: UserFlowManagerProps) {
       
       console.log('🔍 Full user object:', user);
 
+      // Check if this is a demo user
+      const isDemoUser = user.isDemoUser || localStorage.getItem('ascend-demo-mode') === 'true';
+      
+      console.log('🔍 Demo user check:', {
+        userIsDemoUser: user.isDemoUser,
+        localStorageDemoMode: localStorage.getItem('ascend-demo-mode'),
+        isDemoUser: isDemoUser,
+        userOnboardingCompleted: user.onboarding_completed,
+        userAssessmentCompleted: user.assessment_completed,
+        userTotalScore: user.totalScore
+      });
+      
+      if (isDemoUser) {
+        console.log('🚀 Demo user detected - allowing direct dashboard access');
+        // Demo users can access dashboard immediately
+        return;
+      }
+
       // Use the data from the auth context (which is already loaded from database)
       // If user hasn't completed onboarding, redirect to onboarding
       if (!user.onboarding_completed) {
@@ -52,14 +70,17 @@ export default function UserFlowManager({ children }: UserFlowManagerProps) {
       }
 
       // If user has completed onboarding but not assessment, redirect to assessment
-      if (user.onboarding_completed && !user.assessment_completed) {
+      // However, if they have a totalScore > 0, they've likely completed the assessment
+      // but the database tables might not exist yet (temporary fix)
+      if (user.onboarding_completed && !user.assessment_completed && user.totalScore === 0) {
         console.log('➡️ User needs assessment - redirecting to assessment');
         router.push('/assessment');
         return;
       }
 
-      // If user has completed both onboarding and assessment, they can access dashboard
-      if (user.onboarding_completed && user.assessment_completed) {
+      // If user has completed both onboarding and assessment, OR has a totalScore > 0,
+      // they can access dashboard (totalScore > 0 indicates assessment completion)
+      if (user.onboarding_completed && (user.assessment_completed || user.totalScore > 0)) {
         console.log('✅ User has completed onboarding and assessment - allowing dashboard access');
         // No redirect needed, just allow the dashboard to render
         return;

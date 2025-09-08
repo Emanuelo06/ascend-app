@@ -55,7 +55,7 @@ function LoginForm() {
     setError('');
 
     try {
-      // Create demo user data
+      // Create comprehensive demo user data
       const demoUser = {
         id: 'demo-user-123',
         email: 'demo@ascend.app',
@@ -65,6 +65,7 @@ function LoginForm() {
         updated_at: new Date().toISOString(),
         subscription_tier: 'premium' as const,
         onboarding_completed: true,
+        assessment_completed: true,
         streaks: {
           current: 7,
           longest: 21,
@@ -78,17 +79,122 @@ function LoginForm() {
         relationalScore: 70,
         financialScore: 65,
         dailyCheckins: [],
-        progressHistory: []
+        progressHistory: [],
+        // Add demo mode flag
+        isDemoUser: true
       };
 
-      // Store demo user data
+      console.log('🚀 Creating demo user with data:', demoUser);
+
+      // Create demo habits data
+      const demoHabits = [
+        {
+          id: 'demo-habit-1',
+          userId: 'demo-user-123',
+          title: 'Morning Prayer',
+          purpose: 'Start the day with gratitude and spiritual connection',
+          moment: 'morning',
+          category: 'spiritual',
+          priority: 'high',
+          cadence: { type: 'daily' },
+          dose: { unit: 'minutes', target: 10 },
+          window: { start: '07:00', end: '11:00' },
+          difficulty: 2,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'demo-habit-2',
+          userId: 'demo-user-123',
+          title: '30-Minute Workout',
+          purpose: 'Build physical strength and energy',
+          moment: 'morning',
+          category: 'physical',
+          priority: 'high',
+          cadence: { type: 'daily' },
+          dose: { unit: 'minutes', target: 30 },
+          window: { start: '06:00', end: '08:00' },
+          difficulty: 3,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'demo-habit-3',
+          userId: 'demo-user-123',
+          title: 'Evening Reading',
+          purpose: 'Expand knowledge and relax before bed',
+          moment: 'evening',
+          category: 'mental',
+          priority: 'medium',
+          cadence: { type: 'daily' },
+          dose: { unit: 'pages', target: 20 },
+          window: { start: '20:00', end: '22:00' },
+          difficulty: 1,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'demo-habit-4',
+          userId: 'demo-user-123',
+          title: 'Hydration Check',
+          purpose: 'Stay hydrated throughout the day',
+          moment: 'midday',
+          category: 'physical',
+          priority: 'medium',
+          cadence: { type: 'daily' },
+          dose: { unit: 'liters', target: 2 },
+          window: { start: '06:00', end: '22:00' },
+          difficulty: 1,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ];
+
+      // Create demo check-ins for today
+      const today = new Date().toISOString().split('T')[0];
+      const demoCheckins = [
+        {
+          id: 'demo-checkin-1',
+          userId: 'demo-user-123',
+          habitId: 'demo-habit-1',
+          date: today,
+          status: 'done',
+          effort: 2,
+          doseActual: 10,
+          note: 'Felt very connected today',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'demo-checkin-2',
+          userId: 'demo-user-123',
+          habitId: 'demo-habit-2',
+          date: today,
+          status: 'done',
+          effort: 3,
+          doseActual: 30,
+          note: 'Great workout session',
+          createdAt: new Date().toISOString()
+        }
+      ];
+
+      // Store demo data
       localStorage.setItem('ascend_auth_token', 'demo-token-123');
       localStorage.setItem('ascend_user_data', JSON.stringify(demoUser));
+      localStorage.setItem('ascend-habits', JSON.stringify(demoHabits));
+      localStorage.setItem('ascend-checkins', JSON.stringify(demoCheckins));
+      localStorage.setItem('ascend-demo-mode', 'true');
+      
+      console.log('🚀 Demo account loaded successfully');
       
       // Redirect to dashboard
       router.push('/dashboard');
     } catch (error) {
       setError('Failed to load demo account');
+      console.error('Demo login error:', error);
     } finally {
       setIsLoading(false);
     }

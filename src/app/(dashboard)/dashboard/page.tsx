@@ -68,6 +68,73 @@ export default function DashboardPage() {
     try {
       console.log('🔄 Loading dashboard data for user:', user.id);
       
+      // Check if this is a demo user
+      const isDemoUser = user.isDemoUser || localStorage.getItem('ascend-demo-mode') === 'true';
+      
+      if (isDemoUser) {
+        console.log('🚀 Loading demo dashboard data');
+        
+        // Create demo goals from user's goals array
+        const demoGoals: Goal[] = user.goals?.map((goalTitle, index) => ({
+          id: `demo-goal-${index}`,
+          title: goalTitle,
+          category: 'general',
+          progress: Math.floor(Math.random() * 100),
+          targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: 'active' as const,
+          priority: index === 0 ? 'high' : 'medium'
+        })) || [];
+        
+        setGoals(demoGoals);
+        
+        // Load demo habits from localStorage
+        const demoHabits = localStorage.getItem('ascend-habits');
+        if (demoHabits) {
+          const habits = JSON.parse(demoHabits);
+          const dashboardHabits: Habit[] = habits.map((habit: any) => ({
+            id: habit.id,
+            title: habit.title,
+            category: habit.category || 'general',
+            streak: Math.floor(Math.random() * 30),
+            completed: Math.random() > 0.5,
+            target: habit.cadence?.type || 'daily',
+            xpReward: habit.difficulty * 25
+          }));
+          setHabits(dashboardHabits);
+        }
+        
+        // Generate demo recommendations
+        const recommendations: DailyRecommendation[] = [
+          {
+            type: 'habit',
+            title: 'Morning Prayer & Reflection',
+            description: 'Start your day with spiritual grounding',
+            estimatedTime: 10,
+            category: 'spiritual',
+            priority: 'high'
+          },
+          {
+            type: 'challenge',
+            title: '30-Minute Workout',
+            description: 'Build physical strength and energy',
+            estimatedTime: 30,
+            category: 'physical',
+            priority: 'high'
+          },
+          {
+            type: 'reflection',
+            title: 'Daily Goal Review',
+            description: 'Check progress on your selected goals',
+            estimatedTime: 5,
+            category: 'mental',
+            priority: 'medium'
+          }
+        ];
+        
+        setDailyRecommendations(recommendations);
+        return;
+      }
+      
       // Load real goals from database
       const dbGoals = await databaseService.getGoals(user.id);
       console.log('📊 Loaded goals:', dbGoals.length);
@@ -84,36 +151,6 @@ export default function DashboardPage() {
       }));
 
       setGoals(dashboardGoals);
-
-    // Generate daily recommendations based on user's goals
-    const recommendations: DailyRecommendation[] = [
-      {
-        type: 'habit',
-        title: 'Morning Prayer & Reflection',
-        description: 'Start your day with spiritual grounding',
-        estimatedTime: 10,
-        category: 'spiritual',
-        priority: 'high'
-      },
-      {
-        type: 'challenge',
-        title: '30-Minute Workout',
-        description: 'Build physical strength and energy',
-        estimatedTime: 30,
-        category: 'physical',
-        priority: 'high'
-      },
-      {
-        type: 'reflection',
-        title: 'Daily Goal Review',
-        description: 'Check progress on your selected goals',
-        estimatedTime: 5,
-        category: 'mental',
-        priority: 'medium'
-      }
-    ];
-
-    setDailyRecommendations(recommendations);
 
       // Load real habits from database
       const dbHabits = await databaseService.getHabits(user.id);
@@ -138,6 +175,47 @@ export default function DashboardPage() {
       });
 
       setHabits(dashboardHabits);
+
+    // Generate daily recommendations based on user's assessment results and goals
+    const recommendations: DailyRecommendation[] = [];
+    
+    // Add recommendations based on user's assessment scores
+    if (user.totalScore < 60) {
+      recommendations.push({
+        type: 'habit',
+        title: 'Daily Assessment Check-in',
+        description: 'Track your progress and stay motivated',
+        estimatedTime: 5,
+        category: 'mental',
+        priority: 'high'
+      });
+    }
+    
+    // Add recommendations based on user's goals
+    if (dashboardGoals.length > 0) {
+      recommendations.push({
+        type: 'reflection',
+        title: 'Daily Goal Review',
+        description: 'Check progress on your selected goals',
+        estimatedTime: 5,
+        category: 'mental',
+        priority: 'medium'
+      });
+    }
+    
+    // If no habits exist, suggest creating some
+    if (dashboardHabits.length === 0) {
+      recommendations.push({
+        type: 'habit',
+        title: 'Create Your First Habit',
+        description: 'Start building positive daily routines',
+        estimatedTime: 10,
+        category: 'habits',
+        priority: 'high'
+      });
+    }
+
+    setDailyRecommendations(recommendations);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       // Fallback to empty data if there's an error

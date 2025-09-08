@@ -7,6 +7,7 @@ import { MOMENTS, HABIT_TEMPLATES } from '@/data/habit-templates';
 import { habitEngine } from '@/lib/habit-engine';
 import { habitDatabaseService } from '@/lib/habit-database-service';
 import { Habit, HabitOccurrence, HabitCheckin, Moment } from '@/types';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { 
   CheckCircle, 
   Clock, 
@@ -46,6 +47,7 @@ import {
 import CreateHabitModal from '@/components/CreateHabitModal';
 
 export default function DailyPage() {
+  const { user } = useSupabaseAuth();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [checkins, setCheckins] = useState<HabitCheckin[]>([]);
   const [currentMoment, setCurrentMoment] = useState<Moment | null>(null);
@@ -73,128 +75,93 @@ export default function DailyPage() {
     try {
       setLoading(true);
       
-      // For now, use mock data instead of database connection
-      // This will be replaced with real database calls once the schema is set up
-      const mockHabits: Habit[] = [
-        {
-          id: '1',
-          userId: 'demo-user',
-          title: 'Morning Prayer',
-          purpose: 'Start the day with gratitude and spiritual connection',
-          moment: 'morning',
-          category: 'spiritual',
-          priority: 'high',
-          cadence: { type: 'daily' },
-          dose: { unit: 'minutes', target: 10 },
-          window: { start: '07:00', end: '11:00' },
-          difficulty: 2,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          userId: 'demo-user',
-          title: 'Hydration',
-          purpose: 'Stay hydrated throughout the day',
-          moment: 'morning',
-          category: 'physical',
-          priority: 'medium',
-          cadence: { type: 'daily' },
-          dose: { unit: 'liters', target: 2 },
-          window: { start: '06:00', end: '22:00' },
-          difficulty: 1,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '3',
-          userId: 'demo-user',
-          title: 'Deep Work',
-          purpose: 'Uninterrupted focused work sessions',
-          moment: 'morning',
-          category: 'mental',
-          priority: 'high',
-          cadence: { type: 'weekdays' },
-          dose: { unit: 'minutes', target: 90 },
-          window: { start: '08:00', end: '12:00' },
-          difficulty: 3,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '4',
-          userId: 'demo-user',
-          title: 'Mindful Breaks',
-          purpose: 'Take intentional breaks to maintain focus',
-          moment: 'midday',
-          category: 'mental',
-          priority: 'low',
-          cadence: { type: 'daily' },
-          dose: { unit: 'minutes', target: 5 },
-          window: { start: '12:00', end: '14:00' },
-          difficulty: 1,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '5',
-          userId: 'demo-user',
-          title: 'Evening Reflection',
-          purpose: 'End the day with gratitude and prayer',
-          moment: 'evening',
-          category: 'spiritual',
-          priority: 'medium',
-          cadence: { type: 'daily' },
-          dose: { unit: 'minutes', target: 5 },
-          window: { start: '20:00', end: '22:00' },
-          difficulty: 1,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+      if (!user?.id) {
+        console.log('No user ID available');
+        setHabits([]);
+        setCheckins([]);
+        setLoading(false);
+        return;
+      }
+
+      // Check if this is a demo user
+      const isDemoUser = user.isDemoUser || localStorage.getItem('ascend-demo-mode') === 'true';
+      
+      if (isDemoUser) {
+        console.log('🚀 Loading demo data for demo user');
+        const demoHabits = localStorage.getItem('ascend-habits');
+        const demoCheckins = localStorage.getItem('ascend-checkins');
+        
+        if (demoHabits) {
+          const habits = JSON.parse(demoHabits);
+          setHabits(habits);
         }
-      ];
-      
-      const mockCheckins: HabitCheckin[] = [
-        {
-          id: '1',
-          userId: 'demo-user',
-          habitId: '1',
-          date: new Date().toISOString().split('T')[0],
-          status: 'done',
-          effort: 2,
-          doseActual: 10,
-          note: 'Felt very connected today',
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          userId: 'demo-user',
-          habitId: '2',
-          date: new Date().toISOString().split('T')[0],
-          status: 'partial',
-          effort: 1,
-          doseActual: 1.5,
-          note: 'Need to drink more water',
-          createdAt: new Date().toISOString()
+        
+        if (demoCheckins) {
+          const checkins = JSON.parse(demoCheckins);
+          setCheckins(checkins);
         }
-      ];
+        
+        setLoading(false);
+        return;
+      }
+
+      console.log('🔄 Loading real user habits for:', user.id);
       
-      setHabits(mockHabits);
-      setCheckins(mockCheckins);
+      // Load real habits from database
+      const dbHabits = await databaseService.getHabits(user.id);
+      console.log('📊 Loaded habits from database:', dbHabits.length);
       
-      // TODO: Replace with real database calls once schema is set up
-      // const [userHabits, userCheckins] = await Promise.all([
-      //   habitDatabaseService.getHabitsByUser(demoUserId),
-      //   habitDatabaseService.getCheckinsByUser(demoUserId, new Date().toISOString().split('T')[0])
-      // ]);
+      if (dbHabits.length === 0) {
+        console.log('📝 No habits found - user needs to create habits first');
+        setHabits([]);
+        setCheckins([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Convert database habits to the format expected by the component
+      const userHabits: Habit[] = dbHabits.map(habit => ({
+        id: habit.id,
+        userId: habit.user_id,
+        title: habit.title,
+        purpose: habit.purpose || '',
+        moment: habit.metadata?.moment || 'morning',
+        category: habit.metadata?.category || 'general',
+        priority: habit.metadata?.priority || 'medium',
+        cadence: habit.cadence || { type: 'daily' },
+        dose: habit.dose || { unit: 'times', target: 1 },
+        window: habit.window || { start: '06:00', end: '22:00' },
+        difficulty: habit.difficulty || 1,
+        archived: habit.archived || false,
+        createdAt: habit.created_at,
+        updatedAt: habit.updated_at
+      }));
+
+      // Load today's check-ins
+      const today = new Date().toISOString().split('T')[0];
+      const dbCheckins = await databaseService.getHabitCheckins(user.id, undefined, today);
+      console.log('📊 Loaded check-ins for today:', dbCheckins.length);
+      
+      const userCheckins: HabitCheckin[] = dbCheckins.map(checkin => ({
+        id: checkin.id,
+        userId: checkin.user_id,
+        habitId: checkin.habit_id,
+        date: checkin.date,
+        status: checkin.completed ? 'done' : 'pending',
+        effort: checkin.effort || 1,
+        doseActual: checkin.dose_actual || 0,
+        note: checkin.notes || '',
+        createdAt: checkin.created_at
+      }));
+
+      setHabits(userHabits);
+      setCheckins(userCheckins);
       
     } catch (err) {
       console.error('Error loading user data:', err);
       setError('Failed to load habits. Please try again.');
+      setHabits([]);
+      setCheckins([]);
     } finally {
       setLoading(false);
     }

@@ -45,6 +45,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   checkAuth: () => Promise<void>;
   updateUserData: (data: Partial<User>) => Promise<void>;
+  refreshUserData: () => Promise<void>;
   getRedirectPath: (user: User) => string;
   createUserProfile: (userData: any) => Promise<void>;
 }
@@ -84,6 +85,27 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     try {
       setIsLoading(true);
+      
+      // Check for demo mode first
+      const isDemoMode = localStorage.getItem('ascend-demo-mode') === 'true';
+      const demoUserData = localStorage.getItem('ascend_user_data');
+      
+      console.log('🔍 Auth check - demo mode:', {
+        isDemoMode,
+        hasDemoUserData: !!demoUserData,
+        demoModeValue: localStorage.getItem('ascend-demo-mode')
+      });
+      
+      if (isDemoMode && demoUserData) {
+        console.log('🚀 Demo mode detected - loading demo user data');
+        const demoUser = JSON.parse(demoUserData);
+        console.log('🚀 Demo user loaded:', demoUser);
+        setUser(demoUser);
+        setSupabaseUser(null);
+        setSession(null);
+        setIsLoading(false);
+        return;
+      }
       
       // Get current session
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -291,6 +313,14 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       console.log('🚪 Signing out user');
+      
+      // Clear demo mode if it exists
+      localStorage.removeItem('ascend-demo-mode');
+      localStorage.removeItem('ascend_user_data');
+      localStorage.removeItem('ascend-habits');
+      localStorage.removeItem('ascend-checkins');
+      localStorage.removeItem('ascend_auth_token');
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -321,6 +351,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       try {
         const updatedProfile = await databaseService.updateUserProfile(user.id, {
           full_name: data.full_name,
+          onboarding_completed: data.onboarding_completed,
           assessment_completed: data.assessment_completed,
           updated_at: new Date().toISOString()
         });
@@ -331,6 +362,59 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       
     } catch (error) {
       console.error('Error updating user data:', error);
+    }
+  };
+
+  const refreshUserData = async () => {
+    if (!user || !supabaseUser) return;
+    
+    try {
+      console.log('🔄 Refreshing user data from database...');
+      
+      // Get fresh data from database
+      const userProfile = await databaseService.getUserProfile(user.id);
+      const assessment = await databaseService.getLifeAuditAssessment(user.id);
+      const userXP = await databaseService.getUserXP(user.id);
+      
+      if (userProfile) {
+        const refreshedUser: User = {
+          id: userProfile.id,
+          email: userProfile.email,
+          full_name: userProfile.full_name || '',
+          avatar_url: supabaseUser.user_metadata?.avatar_url,
+          created_at: userProfile.created_at,
+          updated_at: userProfile.updated_at,
+          subscription_tier: userProfile.subscription_tier || 'free',
+          onboarding_completed: userProfile.onboarding_completed || false,
+          assessment_completed: userProfile.assessment_completed || false,
+          xp: userXP?.total_xp || 0,
+          level: userXP?.level || 1,
+          streaks: {
+            current: 0,
+            longest: 0,
+            lastActivity: null
+          },
+          goals: [],
+          totalScore: assessment?.ascension_score || 0,
+          physicalScore: assessment?.analysis?.physical || 0,
+          mentalScore: assessment?.analysis?.mental || 0,
+          spiritualScore: assessment?.analysis?.spiritual || 0,
+          relationalScore: assessment?.analysis?.relational || 0,
+          financialScore: assessment?.analysis?.financial || 0,
+          dailyCheckins: [],
+          progressHistory: []
+        };
+        
+        setUser(refreshedUser);
+        console.log('✅ User data refreshed from database:', {
+          onboarding_completed: refreshedUser.onboarding_completed,
+          assessment_completed: refreshedUser.assessment_completed,
+          totalScore: refreshedUser.totalScore
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
     }
   };
 
@@ -389,6 +473,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     signOut,
     checkAuth,
     updateUserData,
+    refreshUserData,
     getRedirectPath,
     createUserProfile
   };

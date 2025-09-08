@@ -23,7 +23,7 @@ interface AssessmentResponse {
 }
 
 export default function AssessmentQuestionsPage() {
-  const { user } = useSupabaseAuth();
+  const { user, updateUserData } = useSupabaseAuth();
   const router = useRouter();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<AssessmentResponse[]>([]);
@@ -164,35 +164,62 @@ export default function AssessmentQuestionsPage() {
         timeSpent
       };
 
+      // Save assessment results to database
+      try {
+        const { databaseService } = await import('@/lib/supabase');
+        
+        // Save the assessment data
+        const savedAssessment = await databaseService.saveLifeAuditAssessment({
+          user_id: user.id,
+          completed_at: new Date().toISOString(),
+          questions: assessmentQuestions,
+          analysis: {
+            ascensionScore: totalScore,
+            physical: finalScores.physical || 0,
+            mental: finalScores.mental || 0,
+            spiritual: finalScores.spiritual || 0,
+            relational: finalScores.relational || 0,
+            financial: finalScores.financial || 0,
+            strongestDimension: strongestArea,
+            biggestOpportunity: biggestOpportunity,
+            improvementUrgency: improvementUrgency
+          },
+          plan: {
+            recommendations: [],
+            nextSteps: []
+          },
+          ascension_score: totalScore,
+          strongest_dimension: strongestArea,
+          biggest_opportunity: biggestOpportunity
+        });
+        
+        console.log('✅ Assessment saved to database:', savedAssessment);
+        
+        // Update user profile to mark assessment as completed
+        await databaseService.updateUserProfile(user.id, {
+          assessment_completed: true
+        });
+        
+        console.log('✅ User profile updated - assessment marked as completed');
+        
+      } catch (dbError) {
+        console.error('❌ Database save failed:', dbError);
+        console.log('🔄 Continuing with localStorage fallback...');
+      }
+
+      // Store results in localStorage as backup
       localStorage.setItem('assessmentResults', JSON.stringify(assessmentResults));
       
-      // Update user data with assessment scores
-      const userData = localStorage.getItem('ascend_user_data');
-      if (userData) {
-        const user = JSON.parse(userData);
-        const updatedUser = {
-          ...user,
-          totalScore: totalScore,
-          physicalScore: finalScores.physical || 0,
-          mentalScore: finalScores.mental || 0,
-          spiritualScore: finalScores.spiritual || 0,
-          relationalScore: finalScores.relational || 0,
-          financialScore: finalScores.financial || 0,
-          updated_at: new Date().toISOString()
-        };
-        
-        // Update stored user data
-        localStorage.setItem('ascend_user_data', JSON.stringify(updatedUser));
-        
-        // Update user in users list
-        const storedUsers = localStorage.getItem('ascend_users') || '[]';
-        const users = JSON.parse(storedUsers);
-        const userIndex = users.findIndex((u: any) => u.id === user.id);
-        if (userIndex !== -1) {
-          users[userIndex] = { ...users[userIndex], ...updatedUser };
-          localStorage.setItem('ascend_users', JSON.stringify(users));
-        }
-      }
+      // Update user data in context (this will also update localStorage)
+      await updateUserData({
+        assessment_completed: true,
+        totalScore: totalScore,
+        physicalScore: finalScores.physical || 0,
+        mentalScore: finalScores.mental || 0,
+        spiritualScore: finalScores.spiritual || 0,
+        relationalScore: finalScores.relational || 0,
+        financialScore: finalScores.financial || 0
+      });
       
       // Redirect to results page
       router.push('/assessment/results');
