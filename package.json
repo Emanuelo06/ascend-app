@@ -29,6 +29,7 @@
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.57.0",
     "@tailwindcss/postcss": "^4.1.12",
+    "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "copy-webpack-plugin": "^13.0.1",
@@ -41,6 +42,7 @@
     "react-hook-form": "^7.62.0",
     "recharts": "^3.1.2",
     "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4",
     "zod": "^4.1.5",
     "zustand": "^5.0.8"
   },
@@ -49,10 +51,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
-    "tailwindcss": "^4",
     "typescript": "^5",
     "webpack-bundle-analyzer": "^4.10.2"
   }
