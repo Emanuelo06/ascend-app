@@ -86,17 +86,21 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Check for demo mode first
+      // Check for demo mode first - be more aggressive about detection
       const isDemoMode = localStorage.getItem('ascend-demo-mode') === 'true';
       const demoUserData = localStorage.getItem('ascend_user_data');
+      const demoToken = localStorage.getItem('ascend_auth_token');
       
       console.log('🔍 Auth check - demo mode:', {
         isDemoMode,
         hasDemoUserData: !!demoUserData,
-        demoModeValue: localStorage.getItem('ascend-demo-mode')
+        hasDemoToken: !!demoToken,
+        demoModeValue: localStorage.getItem('ascend-demo-mode'),
+        demoTokenValue: demoToken
       });
       
-      if (isDemoMode && demoUserData) {
+      // Check for demo mode OR demo token
+      if ((isDemoMode || demoToken === 'demo-token-123') && demoUserData) {
         console.log('🚀 Demo mode detected - loading demo user data');
         const demoUser = JSON.parse(demoUserData);
         console.log('🚀 Demo user loaded:', demoUser);

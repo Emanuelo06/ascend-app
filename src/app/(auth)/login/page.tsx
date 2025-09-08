@@ -189,9 +189,11 @@ function LoginForm() {
       localStorage.setItem('ascend-demo-mode', 'true');
       
       console.log('🚀 Demo account loaded successfully');
+      console.log('🚀 Demo mode set:', localStorage.getItem('ascend-demo-mode'));
+      console.log('🚀 Demo user data:', localStorage.getItem('ascend_user_data'));
       
-      // Redirect to dashboard
-      router.push('/dashboard');
+      // Force a page reload to ensure auth context picks up demo mode
+      window.location.href = '/dashboard';
     } catch (error) {
       setError('Failed to load demo account');
       console.error('Demo login error:', error);

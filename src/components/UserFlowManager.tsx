@@ -43,12 +43,14 @@ export default function UserFlowManager({ children }: UserFlowManagerProps) {
       
       console.log('🔍 Full user object:', user);
 
-      // Check if this is a demo user
-      const isDemoUser = user.isDemoUser || localStorage.getItem('ascend-demo-mode') === 'true';
+      // Check if this is a demo user - be more aggressive about detection
+      const localStorageDemoMode = localStorage.getItem('ascend-demo-mode');
+      const isDemoUser = user.isDemoUser || localStorageDemoMode === 'true' || user.id === 'demo-user-123';
       
       console.log('🔍 Demo user check:', {
         userIsDemoUser: user.isDemoUser,
-        localStorageDemoMode: localStorage.getItem('ascend-demo-mode'),
+        localStorageDemoMode: localStorageDemoMode,
+        userId: user.id,
         isDemoUser: isDemoUser,
         userOnboardingCompleted: user.onboarding_completed,
         userAssessmentCompleted: user.assessment_completed,
@@ -186,8 +188,11 @@ export default function UserFlowManager({ children }: UserFlowManagerProps) {
     );
   }
 
-  // Show children if user is authenticated and flow is complete
-  if (user && supabaseUser) {
+  // Check for demo user first
+  const isDemoUser = user?.isDemoUser || localStorage.getItem('ascend-demo-mode') === 'true' || user?.id === 'demo-user-123';
+  
+  // Show children if user is authenticated and flow is complete, OR if it's a demo user
+  if ((user && supabaseUser) || (user && isDemoUser)) {
     return <>{children}</>;
   }
 

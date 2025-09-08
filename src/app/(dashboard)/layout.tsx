@@ -2,6 +2,7 @@
 
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import UserFlowManager from '@/components/UserFlowManager';
+import DemoDebugger from '@/components/DemoDebugger';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -38,14 +39,40 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoUser, setDemoUser] = useState<any>(null);
+
+  // Check for demo mode
+  useEffect(() => {
+    const checkDemoMode = () => {
+      const demoMode = localStorage.getItem('ascend-demo-mode') === 'true';
+      const demoToken = localStorage.getItem('ascend_auth_token') === 'demo-token-123';
+      const demoUserData = localStorage.getItem('ascend_user_data');
+      
+      console.log('🔍 Layout demo check:', {
+        demoMode,
+        demoToken,
+        hasDemoUserData: !!demoUserData
+      });
+      
+      if ((demoMode || demoToken) && demoUserData) {
+        console.log('🚀 Demo mode detected in layout');
+        setIsDemoMode(true);
+        setDemoUser(JSON.parse(demoUserData));
+        return;
+      }
+    };
+    
+    checkDemoMode();
+  }, []);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && !user && !isDemoMode) {
       router.push('/login');
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, isDemoMode]);
 
-  if (isLoading) {
+  if (isLoading && !isDemoMode) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
         <div className="text-center">
@@ -57,9 +84,12 @@ export default function DashboardLayout({
     );
   }
 
-  if (!user) {
+  if (!user && !isDemoMode) {
     return null;
   }
+
+  // Use demo user if in demo mode, otherwise use regular user
+  const currentUser = isDemoMode ? demoUser : user;
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home, current: pathname === '/dashboard' },
@@ -78,12 +108,23 @@ export default function DashboardLayout({
   ];
 
   const handleSignOut = async () => {
-    await signOut();
-    router.push('/');
+    if (isDemoMode) {
+      // Clear demo data
+      localStorage.removeItem('ascend-demo-mode');
+      localStorage.removeItem('ascend_user_data');
+      localStorage.removeItem('ascend-habits');
+      localStorage.removeItem('ascend-checkins');
+      localStorage.removeItem('ascend_auth_token');
+      router.push('/');
+    } else {
+      await signOut();
+      router.push('/');
+    }
   };
 
   return (
     <UserFlowManager>
+      <DemoDebugger />
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
         {/* Mobile sidebar backdrop */}
         {sidebarOpen && (
@@ -119,12 +160,15 @@ export default function DashboardLayout({
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">
-                    {user?.full_name?.charAt(0).toUpperCase() || 'U'}
+                    {currentUser?.full_name?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
                 <div>
-                  <p className="text-white font-medium">{user?.full_name || 'User'}</p>
-                  <p className="text-blue-200 text-sm">{user?.email || 'user@example.com'}</p>
+                  <p className="text-white font-medium">{currentUser?.full_name || 'User'}</p>
+                  <p className="text-blue-200 text-sm">{currentUser?.email || 'user@example.com'}</p>
+                  {isDemoMode && (
+                    <p className="text-yellow-400 text-xs">🚀 Demo Mode</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -179,12 +223,17 @@ export default function DashboardLayout({
               <div className="flex items-center space-x-4">
                 <div className="hidden md:flex items-center space-x-2 text-blue-200">
                   <Flame className="w-4 h-4" />
-                  <span className="text-sm">Current Streak: {user?.streaks?.current || 0} days</span>
+                  <span className="text-sm">Current Streak: {currentUser?.streaks?.current || 0} days</span>
                 </div>
                 <div className="hidden md:flex items-center space-x-2 text-blue-200">
                   <Trophy className="w-4 h-4" />
-                  <span className="text-sm">Total Score: {user?.totalScore || 0}</span>
+                  <span className="text-sm">Total Score: {currentUser?.totalScore || 0}</span>
                 </div>
+                {isDemoMode && (
+                  <div className="hidden md:flex items-center space-x-2 text-yellow-400">
+                    <span className="text-sm">🚀 Demo Account</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

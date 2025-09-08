@@ -54,13 +54,107 @@ export default function DashboardPage() {
   const [moodNote, setMoodNote] = useState('');
   const [aiTip, setAiTip] = useState('');
   const [showAiTip, setShowAiTip] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+
+  // Check for demo mode immediately
+  useEffect(() => {
+    const checkDemoMode = () => {
+      const demoMode = localStorage.getItem('ascend-demo-mode') === 'true';
+      const demoToken = localStorage.getItem('ascend_auth_token') === 'demo-token-123';
+      const demoUserData = localStorage.getItem('ascend_user_data');
+      
+      console.log('🔍 Dashboard demo check:', {
+        demoMode,
+        demoToken,
+        hasDemoUserData: !!demoUserData
+      });
+      
+      if ((demoMode || demoToken) && demoUserData) {
+        console.log('🚀 Demo mode detected in dashboard - bypassing auth');
+        setIsDemoMode(true);
+        // Load demo data immediately
+        loadDemoDashboardData();
+        return;
+      }
+    };
+    
+    checkDemoMode();
+  }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && !isDemoMode) {
       loadDashboardData();
       generateAiTip();
     }
-  }, [user]);
+  }, [user, isDemoMode]);
+
+  const loadDemoDashboardData = () => {
+    console.log('🚀 Loading demo dashboard data');
+    
+    // Create demo goals from user's goals array
+    const demoUserData = JSON.parse(localStorage.getItem('ascend_user_data') || '{}');
+    const demoGoals: Goal[] = demoUserData.goals?.map((goalTitle: string, index: number) => ({
+      id: `demo-goal-${index}`,
+      title: goalTitle,
+      category: 'general',
+      progress: Math.floor(Math.random() * 100),
+      targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'active' as const,
+      priority: index === 0 ? 'high' : 'medium'
+    })) || [];
+    
+    setGoals(demoGoals);
+    
+    // Load demo habits from localStorage
+    const demoHabits = localStorage.getItem('ascend-habits');
+    if (demoHabits) {
+      const habits = JSON.parse(demoHabits);
+      const dashboardHabits: Habit[] = habits.map((habit: any) => ({
+        id: habit.id,
+        title: habit.title,
+        category: habit.category || 'general',
+        streak: Math.floor(Math.random() * 30),
+        completed: Math.random() > 0.5,
+        target: habit.cadence?.type || 'daily',
+        xpReward: habit.difficulty * 25
+      }));
+      setHabits(dashboardHabits);
+    }
+    
+    // Generate demo recommendations
+    const recommendations: DailyRecommendation[] = [
+      {
+        type: 'habit',
+        title: 'Morning Prayer & Reflection',
+        description: 'Start your day with spiritual grounding',
+        estimatedTime: 10,
+        category: 'spiritual',
+        priority: 'high'
+      },
+      {
+        type: 'challenge',
+        title: '30-Minute Workout',
+        description: 'Build physical strength and energy',
+        estimatedTime: 30,
+        category: 'physical',
+        priority: 'high'
+      },
+      {
+        type: 'reflection',
+        title: 'Daily Goal Review',
+        description: 'Check progress on your selected goals',
+        estimatedTime: 5,
+        category: 'mental',
+        priority: 'medium'
+      }
+    ];
+    
+    setDailyRecommendations(recommendations);
+    
+    // Generate demo AI tip
+    setAiTip('Welcome to your ASCEND dashboard! This is a demo account showing you all the features available. Start by exploring your habits and goals.');
+    setShowAiTip(true);
+  };
 
   const loadDashboardData = async () => {
     if (!user?.id) return;
