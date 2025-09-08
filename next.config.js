@@ -54,6 +54,25 @@ const nextConfig = {
 
   // Webpack configuration
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Add alias resolution for @ imports - more explicit for Vercel
+    const path = require('path');
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, 'src'),
+      '@/components': path.resolve(__dirname, 'src/components'),
+      '@/lib': path.resolve(__dirname, 'src/lib'),
+      '@/contexts': path.resolve(__dirname, 'src/contexts'),
+      '@/data': path.resolve(__dirname, 'src/data'),
+      '@/types': path.resolve(__dirname, 'src/types'),
+      '@/app': path.resolve(__dirname, 'src/app'),
+    };
+
+    // Ensure proper module resolution
+    config.resolve.modules = [
+      path.resolve(__dirname, 'src'),
+      path.resolve(__dirname, 'node_modules'),
+    ];
+
     // PWA support
     if (!isServer) {
       config.resolve.fallback = {
