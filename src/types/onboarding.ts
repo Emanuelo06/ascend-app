@@ -12,8 +12,6 @@ export interface LifeAuditAssessment {
     spiritualConnection: DimensionScore;
     relationalHarmony: DimensionScore;
     financialWisdom: DimensionScore;
-    creativeExpression: DimensionScore;
-    legacyBuilding: DimensionScore;
   };
   
   // Overall Ascension Score
@@ -42,9 +40,7 @@ export type DimensionType =
   | 'mentalMastery' 
   | 'spiritualConnection'
   | 'relationalHarmony'
-  | 'financialWisdom'
-  | 'creativeExpression'
-  | 'legacyBuilding';
+  | 'financialWisdom';
 
 export type DimensionLevel = 'novice' | 'developing' | 'advanced' | 'expert' | 'master';
 
@@ -512,188 +508,6 @@ export const LIFE_AUDIT_QUESTIONS: Record<DimensionType, AssessmentQuestion[]> =
       response: 5,
       category: 'financial_confidence',
       weight: 1.1
-    }
-  ],
-  
-  creativeExpression: [
-    {
-      id: 'ce_1',
-      dimension: 'creativeExpression',
-      question: 'How regularly do you engage in creative activities?',
-      response: 5,
-      category: 'creative_engagement',
-      weight: 1.1
-    },
-    {
-      id: 'ce_2',
-      dimension: 'creativeExpression',
-      question: 'How satisfied are you with your creative output and projects?',
-      response: 5,
-      category: 'creative_satisfaction',
-      weight: 1.0
-    },
-    {
-      id: 'ce_3',
-      dimension: 'creativeExpression',
-      question: 'How well do you use your unique talents and gifts?',
-      response: 5,
-      category: 'talent_utilization',
-      weight: 1.2
-    },
-    {
-      id: 'ce_4',
-      dimension: 'creativeExpression',
-      question: 'How often do you try new creative endeavors or hobbies?',
-      response: 5,
-      category: 'creative_exploration',
-      weight: 1.0
-    },
-    {
-      id: 'ce_5',
-      dimension: 'creativeExpression',
-      question: 'How confident are you in sharing your creative work?',
-      response: 5,
-      category: 'creative_confidence',
-      weight: 1.1
-    },
-    {
-      id: 'ce_6',
-      dimension: 'creativeExpression',
-      question: 'How well do you see creativity as part of being made in God\'s image?',
-      response: 5,
-      category: 'spiritual_creativity',
-      weight: 1.3
-    },
-    {
-      id: 'ce_7',
-      dimension: 'creativeExpression',
-      question: 'How satisfied are you with your work\'s creative aspects?',
-      response: 5,
-      category: 'work_creativity',
-      weight: 1.0
-    },
-    {
-      id: 'ce_8',
-      dimension: 'creativeExpression',
-      question: 'How well do you inspire creativity in others?',
-      response: 5,
-      category: 'inspiring_others',
-      weight: 1.1
-    },
-    {
-      id: 'ce_9',
-      dimension: 'creativeExpression',
-      question: 'How often do you create something meaningful for others?',
-      response: 5,
-      category: 'meaningful_creation',
-      weight: 1.2
-    },
-    {
-      id: 'ce_10',
-      dimension: 'creativeExpression',
-      question: 'How well do you balance structure with creative freedom?',
-      response: 5,
-      category: 'balance',
-      weight: 1.0
-    },
-    {
-      id: 'ce_11',
-      dimension: 'creativeExpression',
-      question: 'How aligned is your creative expression with your values?',
-      response: 5,
-      category: 'values_alignment',
-      weight: 1.1
-    }
-  ],
-  
-  legacyBuilding: [
-    {
-      id: 'lb_1',
-      dimension: 'legacyBuilding',
-      question: 'How clear are you about the impact you want to make?',
-      response: 5,
-      category: 'impact_clarity',
-      weight: 1.3
-    },
-    {
-      id: 'lb_2',
-      dimension: 'legacyBuilding',
-      question: 'How actively are you mentoring or developing others?',
-      response: 5,
-      category: 'mentoring',
-      weight: 1.2
-    },
-    {
-      id: 'lb_3',
-      dimension: 'legacyBuilding',
-      question: 'How well are you preparing the next generation?',
-      response: 5,
-      category: 'next_generation',
-      weight: 1.3
-    },
-    {
-      id: 'lb_4',
-      dimension: 'legacyBuilding',
-      question: 'How satisfied are you with your contribution to your community?',
-      response: 5,
-      category: 'community_contribution',
-      weight: 1.1
-    },
-    {
-      id: 'lb_5',
-      dimension: 'legacyBuilding',
-      question: 'How aligned are your daily actions with your long-term legacy?',
-      response: 5,
-      category: 'daily_alignment',
-      weight: 1.2
-    },
-    {
-      id: 'lb_6',
-      dimension: 'legacyBuilding',
-      question: 'How well are you stewarding your influence and platform?',
-      response: 5,
-      category: 'influence_stewardship',
-      weight: 1.1
-    },
-    {
-      id: 'lb_7',
-      dimension: 'legacyBuilding',
-      question: 'How actively are you working on something bigger than yourself?',
-      response: 5,
-      category: 'bigger_purpose',
-      weight: 1.3
-    },
-    {
-      id: 'lb_8',
-      dimension: 'legacyBuilding',
-      question: 'How satisfied are you with the example you\'re setting?',
-      response: 5,
-      category: 'example_setting',
-      weight: 1.2
-    },
-    {
-      id: 'lb_9',
-      dimension: 'legacyBuilding',
-      question: 'How well do you document and share your wisdom?',
-      response: 5,
-      category: 'wisdom_sharing',
-      weight: 1.1
-    },
-    {
-      id: 'lb_10',
-      dimension: 'legacyBuilding',
-      question: 'How confident are you that your life matters eternally?',
-      response: 5,
-      category: 'eternal_significance',
-      weight: 1.4
-    },
-    {
-      id: 'lb_11',
-      dimension: 'legacyBuilding',
-      question: 'How well are you living for future generations, not just yourself?',
-      response: 5,
-      category: 'future_focus',
-      weight: 1.3
     }
   ]
 };

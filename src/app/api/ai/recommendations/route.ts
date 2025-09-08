@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HabitDatabaseService } from '@/lib/habit-database-service';
-import { AICoachingEngine } from '@/lib/ai-coaching-engine';
+import { AICoachingEngine, CoachingContext } from '@/lib/ai-coaching-engine';
 
 const habitService = HabitDatabaseService.getInstance();
-const aiEngine = new AICoachingEngine();
+const aiEngine = AICoachingEngine.getInstance();
 
 // GET /api/ai/recommendations - Get AI recommendations
 export async function GET(request: NextRequest) {
@@ -33,11 +33,23 @@ export async function GET(request: NextRequest) {
       today
     );
 
+    // Create coaching context
+    const context: CoachingContext = {
+      userId,
+      habits: activeHabits,
+      checkins: recentCheckins,
+      metrics: [], // TODO: Add habit metrics if needed
+      goals: [], // TODO: Add user goals if available
+      timezone: 'UTC', // TODO: Get user timezone
+      currentStreak: 0, // TODO: Calculate current streak
+      recentProgress: [] // TODO: Add recent progress data
+    };
+
     let recommendations;
 
     switch (type) {
       case 'weekly':
-        recommendations = await aiEngine.generateWeeklyInsights(userId, activeHabits, recentCheckins);
+        recommendations = await aiEngine.generateWeeklyInsights(context);
         break;
       
       case 'habit-specific':
@@ -55,12 +67,12 @@ export async function GET(request: NextRequest) {
             { status: 404 }
           );
         }
-        recommendations = await aiEngine.generateHabitSpecificInsights(userId, habit, recentCheckins);
+        recommendations = await aiEngine.generateHabitInsights(habitId, context);
         break;
       
       case 'general':
       default:
-        recommendations = await aiEngine.generateGeneralInsights(userId, activeHabits, recentCheckins);
+        recommendations = await aiEngine.generateWeeklyInsights(context);
         break;
     }
 
@@ -100,12 +112,31 @@ export async function POST(request: NextRequest) {
     const habits = await habitService.getHabitsByUser(userId);
     const activeHabits = habits.filter(habit => !habit.archived && habit.isActive);
     
-    const customRecommendation = await aiEngine.generateCustomInsight(
+    // Get recent checkins for context
+    const lastWeek = new Date();
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    const today = new Date().toISOString().split('T')[0];
+    const recentCheckins = await habitService.getCheckinsByUserInRange(
       userId, 
-      prompt, 
-      activeHabits, 
-      context
+      lastWeek.toISOString().split('T')[0], 
+      today
     );
+
+    // Create coaching context
+    const coachingContext: CoachingContext = {
+      userId,
+      habits: activeHabits,
+      checkins: recentCheckins,
+      metrics: [], // TODO: Add habit metrics if needed
+      goals: [], // TODO: Add user goals if available
+      timezone: 'UTC', // TODO: Get user timezone
+      currentStreak: 0, // TODO: Calculate current streak
+      recentProgress: [] // TODO: Add recent progress data
+    };
+    
+    // For now, use weekly insights as a fallback for custom recommendations
+    // TODO: Implement proper custom insight generation
+    const customRecommendation = await aiEngine.generateWeeklyInsights(coachingContext);
 
     return NextResponse.json({
       success: true,

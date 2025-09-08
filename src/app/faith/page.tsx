@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
@@ -31,7 +31,7 @@ interface SpiritualActivity {
 }
 
 export default function FaithPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [todayVerse, setTodayVerse] = useState<BibleVerse | null>(null);

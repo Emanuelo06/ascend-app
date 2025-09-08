@@ -32,7 +32,7 @@ export interface LifeAuditQuestion {
   response_scale: 0 | 1 | 2 | 3;
 }
 
-export type LifeDimension = 'physical' | 'mental' | 'spiritual' | 'relational' | 'financial' | 'creative' | 'legacy';
+export type LifeDimension = 'physical' | 'mental' | 'spiritual' | 'relational' | 'financial';
 
 export interface LifeAuditResponse {
   question_id: string;
@@ -47,8 +47,6 @@ export interface LifeAuditResults {
   spiritual_score: number;
   relational_score: number;
   financial_score: number;
-  creative_score: number;
-  legacy_score: number;
   total_score: number;
   responses: LifeAuditResponse[];
   created_at: string;

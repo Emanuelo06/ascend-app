@@ -35,8 +35,6 @@ export interface LifeAuditResults {
   spiritualScore: number
   relationalScore: number
   financialScore: number
-  creativeScore: number
-  legacyScore: number
   totalScore: number
   responses: Record<string, any>
   createdAt: Date

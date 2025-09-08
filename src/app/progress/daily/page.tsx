@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
@@ -32,7 +32,7 @@ interface DailyProgress {
 }
 
 export default function DailyProgressPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
   const [progress, setProgress] = useState<DailyProgress>({
     date: new Date().toISOString().split('T')[0],

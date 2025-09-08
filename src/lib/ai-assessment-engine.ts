@@ -207,7 +207,7 @@ export class AIAssessmentEngine {
     // Initialize all dimensions
     const dimensionTypes: DimensionType[] = [
       'physicalVitality', 'mentalMastery', 'spiritualConnection', 
-      'relationalHarmony', 'financialWisdom', 'creativeExpression', 'legacyBuilding'
+      'relationalHarmony', 'financialWisdom'
     ];
 
     dimensionTypes.forEach(dimension => {
@@ -398,16 +398,6 @@ export class AIAssessmentEngine {
           insights.push('Financial peace removes stress and creates space for growth in other areas.');
         }
         break;
-      case 'creativeExpression':
-        if (score < 6) {
-          insights.push('Creative expression can unlock new ways to serve God and others.');
-        }
-        break;
-      case 'legacyBuilding':
-        if (score < 6) {
-          insights.push('Focusing on legacy can provide deeper motivation for daily growth.');
-        }
-        break;
     }
     
     return insights;
@@ -593,7 +583,6 @@ export class AIAssessmentEngine {
     } else {
       outcomes.push('Legendary status in multiple dimensions');
       outcomes.push('Ability to mentor and transform others');
-      outcomes.push('Creation of lasting legacy and impact');
       outcomes.push('Complete alignment with God\'s purpose');
     }
     

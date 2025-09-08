@@ -21,8 +21,8 @@ export const NAVIGATION_ITEMS = [
     current: false,
   },
   {
-    name: 'Progress',
-    href: '/progress',
+    name: 'Analytics & Progress',
+    href: '/analytics',
     icon: '📈',
     current: false,
   },
@@ -193,60 +193,6 @@ export const LIFE_AUDIT_QUESTIONS = {
       id: 'financial_5',
       question: 'I have financial peace and security',
       category: 'financial' as const,
-    },
-  ],
-  creative: [
-    {
-      id: 'creative_1',
-      question: 'I express myself through creative outlets and hobbies',
-      category: 'creative' as const,
-    },
-    {
-      id: 'creative_2',
-      question: 'I think outside the box and solve problems innovatively',
-      category: 'creative' as const,
-    },
-    {
-      id: 'creative_3',
-      question: 'I take time to appreciate art, music, and beauty',
-      category: 'creative' as const,
-    },
-    {
-      id: 'creative_4',
-      question: 'I experiment with new ideas and approaches',
-      category: 'creative' as const,
-    },
-    {
-      id: 'creative_5',
-      question: 'I feel inspired and motivated by creative pursuits',
-      category: 'creative' as const,
-    },
-  ],
-  legacy: [
-    {
-      id: 'legacy_1',
-      question: 'I am making a positive impact on future generations',
-      category: 'legacy' as const,
-    },
-    {
-      id: 'legacy_2',
-      question: 'I share my knowledge and wisdom with others',
-      category: 'legacy' as const,
-    },
-    {
-      id: 'legacy_3',
-      question: 'I live according to values that will outlast me',
-      category: 'legacy' as const,
-    },
-    {
-      id: 'legacy_4',
-      question: 'I am building something meaningful and lasting',
-      category: 'legacy' as const,
-    },
-    {
-      id: 'legacy_5',
-      question: 'I feel fulfilled by my contributions to the world',
-      category: 'legacy' as const,
     },
   ],
 };

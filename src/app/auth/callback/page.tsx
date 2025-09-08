@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 // Wrapper component that uses useSearchParams
 function OAuthCallbackContent() {
@@ -11,67 +11,23 @@ function OAuthCallbackContent() {
   const [message, setMessage] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { getRedirectPath } = useAuth();
+  const { getRedirectPath } = useSupabaseAuth();
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Get the authorization code from URL params
-        const code = searchParams.get('code');
-        const error = searchParams.get('error');
+        console.log('🔄 Handling OAuth callback');
         
-        if (error) {
-          setStatus('error');
-          setMessage(`OAuth error: ${error}`);
-          setTimeout(() => router.push('/login'), 3000);
-          return;
-        }
-
-        if (!code) {
-          setStatus('error');
-          setMessage('No authorization code received');
-          setTimeout(() => router.push('/login'), 3000);
-          return;
-        }
-
-        // For now, we'll simulate a successful OAuth flow
-        // In production, this would exchange the code for tokens and create/authenticate the user
+        // Supabase will automatically handle the OAuth callback
+        // We just need to wait for the auth state to update
         setStatus('success');
         setMessage('Authentication successful! Redirecting...');
         
-        // Simulate the OAuth user creation
-        const oauthUser = {
-          id: `oauth-user-${Date.now()}`,
-          email: `oauth-${Date.now()}@example.com`,
-          full_name: 'OAuth User',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          subscription_tier: 'free' as const,
-          onboarding_completed: false,
-          streaks: {
-            current: 0,
-            longest: 0,
-            lastActivity: null
-          },
-          goals: [],
-          totalScore: 0,
-          physicalScore: 0,
-          mentalScore: 0,
-          spiritualScore: 0,
-          relationalScore: 0,
-          financialScore: 0,
-          dailyCheckins: [],
-          progressHistory: []
-        };
-
-        // Store the OAuth user data
-        localStorage.setItem('ascend_auth_token', `oauth-token-${Date.now()}`);
-        localStorage.setItem('ascend_user_data', JSON.stringify(oauthUser));
-
-        // Determine redirect path and redirect
+        // Wait a moment for Supabase to process the callback and UserFlowManager to handle routing
         setTimeout(() => {
-          const redirectPath = getRedirectPath(oauthUser);
-          router.push(redirectPath);
+          // The UserFlowManager will automatically redirect based on completion status
+          // No need to manually redirect here
+          console.log('✅ OAuth callback complete - UserFlowManager will handle routing');
         }, 1500);
 
       } catch (error) {
@@ -83,7 +39,7 @@ function OAuthCallbackContent() {
     };
 
     handleCallback();
-  }, [searchParams, router, getRedirectPath]);
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">

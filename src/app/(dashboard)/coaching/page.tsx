@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   BrainIcon,
@@ -40,7 +40,7 @@ interface CoachingContext {
 }
 
 export default function CoachingPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
   const [sessions, setSessions] = useState<CoachingSession[]>([]);
   const [currentSession, setCurrentSession] = useState<CoachingSession | null>(null);

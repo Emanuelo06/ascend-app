@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { ArrowLeft, ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { databaseService } from '@/lib/supabase';
 
 interface AssessmentQuestion {
   id: string;
@@ -21,7 +22,7 @@ interface AssessmentResponse {
 }
 
 export default function AssessmentPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useSupabaseAuth();
   const router = useRouter();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<AssessmentResponse[]>([]);
@@ -66,19 +67,6 @@ export default function AssessmentPage() {
     { id: '25', category: 'financial', question: 'How would you rate your financial education and literacy?', response_scale: 3 },
     { id: '26', category: 'financial', question: 'How would you rate your overall financial health?', response_scale: 3 },
     
-    // Creative Dimension
-    { id: '27', category: 'creative', question: 'How would you rate your creative expression and hobbies?', response_scale: 3 },
-    { id: '28', category: 'creative', question: 'How would you rate your problem-solving creativity?', response_scale: 3 },
-    { id: '29', category: 'creative', question: 'How would you rate your artistic or musical interests?', response_scale: 3 },
-    { id: '30', category: 'creative', question: 'How would you rate your innovative thinking?', response_scale: 3 },
-    { id: '31', category: 'creative', question: 'How would you rate your overall creative fulfillment?', response_scale: 3 },
-    
-    // Legacy Dimension
-    { id: '32', category: 'legacy', question: 'How would you rate your impact on others and community?', response_scale: 3 },
-    { id: '33', category: 'legacy', question: 'How would you rate your contribution to future generations?', response_scale: 3 },
-    { id: '34', category: 'legacy', question: 'How would you rate your leadership and influence?', response_scale: 3 },
-    { id: '35', category: 'legacy', question: 'How would you rate your sense of leaving a positive mark?', response_scale: 3 },
-    { id: '36', category: 'legacy', question: 'How would you rate your overall legacy building?', response_scale: 3 }
   ];
 
   useEffect(() => {
@@ -155,6 +143,11 @@ export default function AssessmentPage() {
   };
 
   const handleSubmit = async () => {
+    if (!user?.id) {
+      alert('You must be logged in to submit the assessment.');
+      return;
+    }
+
     if (responses.length < questions.length) {
       alert('Please answer all questions before submitting.');
       return;
@@ -162,21 +155,166 @@ export default function AssessmentPage() {
 
     setIsSubmitting(true);
     
+    // Add a timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      console.error('⏰ Assessment submission timed out after 30 seconds');
+      setIsSubmitting(false);
+      alert('Assessment submission timed out. Please try again.');
+    }, 30000);
+    
     try {
-      // In a real app, you would send responses to your API
-      console.log('Submitting responses:', responses);
+      console.log('🔄 Submitting assessment for user:', user.id);
+      console.log('📊 Responses:', responses);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Calculate scores for each dimension
+      const scores = calculateDimensionScores(responses);
+      const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
       
-      // Redirect to results page
-      router.push('/assessment/results');
+      // Find strongest dimension and biggest opportunity
+      const strongestDimension = Object.entries(scores).reduce((a, b) => scores[a[0]] > scores[b[0]] ? a : b)[0];
+      const biggestOpportunity = Object.entries(scores).reduce((a, b) => scores[a[0]] < scores[b[0]] ? a : b)[0];
+      
+      // Create assessment data
+      const assessmentData = {
+        user_id: user.id,
+        completed_at: new Date().toISOString(),
+        questions: questions,
+        analysis: {
+          physical: scores.physical,
+          mental: scores.mental,
+          spiritual: scores.spiritual,
+          relational: scores.relational,
+          financial: scores.financial
+        },
+        plan: {
+          focus_areas: [strongestDimension, biggestOpportunity],
+          recommendations: generateRecommendations(scores)
+        },
+        ascension_score: totalScore,
+        strongest_dimension: strongestDimension,
+        biggest_opportunity: biggestOpportunity
+      };
+      
+      console.log('📊 Assessment data to save:', assessmentData);
+      
+      // Try to save to database (non-blocking)
+      let savedAssessment = null;
+      console.log('🔄 Attempting to save assessment to database...');
+      console.log('📊 Assessment data structure:', JSON.stringify(assessmentData, null, 2));
+      
+      // Test database connection first
+      console.log('🔍 Testing database connection...');
+      try {
+        const testConnection = await databaseService.getLifeAuditAssessment(user.id);
+        console.log('✅ Database connection test successful');
+      } catch (connError) {
+        console.log('⚠️ Database connection test failed (this is expected for new users):', connError);
+      }
+      
+      // Use Promise.race to prevent hanging
+      const dbSavePromise = databaseService.saveLifeAuditAssessment(assessmentData);
+      const dbTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database save timeout')), 15000)
+      );
+      
+      try {
+        console.log('⏱️ Starting database save with 15-second timeout...');
+        savedAssessment = await Promise.race([dbSavePromise, dbTimeoutPromise]);
+        console.log('✅ Assessment saved to database:', savedAssessment);
+      } catch (dbError) {
+        console.error('❌ Database save failed:', dbError);
+        console.log('🔄 Continuing with local storage fallback...');
+      }
+      
+      // Try to update user profile (non-blocking)
+      console.log('🔄 Attempting to update user profile...');
+      const profileUpdatePromise = databaseService.updateUserProfile(user.id, {
+        assessment_completed: true
+      });
+      const profileTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile update timeout')), 5000)
+      );
+      
+      try {
+        await Promise.race([profileUpdatePromise, profileTimeoutPromise]);
+        console.log('✅ User profile updated in database');
+      } catch (profileError) {
+        console.error('❌ Profile update failed:', profileError);
+        console.log('🔄 Continuing with local update...');
+      }
+      
+      // Update local user data regardless of database success
+      console.log('🔄 Updating local user data...');
+      console.log('📊 Scores to update:', {
+        totalScore,
+        physical: scores.physical,
+        mental: scores.mental,
+        spiritual: scores.spiritual,
+        relational: scores.relational,
+        financial: scores.financial
+      });
+      
+      updateUserData({
+        assessment_completed: true,
+        totalScore: totalScore,
+        physicalScore: scores.physical,
+        mentalScore: scores.mental,
+        spiritualScore: scores.spiritual,
+        relationalScore: scores.relational,
+        financialScore: scores.financial
+      });
+      
+      console.log('✅ Assessment completed successfully');
+      
+      // Redirect to results page (use generated ID if database save failed)
+      const assessmentId = savedAssessment?.id || `local-${Date.now()}`;
+      console.log('🔄 Redirecting to results page with ID:', assessmentId);
+      router.push(`/assessment/results?assessmentId=${assessmentId}`);
+      
     } catch (error) {
       console.error('Error submitting assessment:', error);
       alert('There was an error submitting your assessment. Please try again.');
     } finally {
+      clearTimeout(timeoutId);
       setIsSubmitting(false);
     }
+  };
+
+  const calculateDimensionScores = (responses: AssessmentResponse[]) => {
+    const scores = {
+      physical: 0,
+      mental: 0,
+      spiritual: 0,
+      relational: 0,
+      financial: 0
+    };
+
+    responses.forEach(response => {
+      const question = questions.find(q => q.id === response.question_id);
+      if (question) {
+        const responseValue = Array.isArray(response.response) 
+          ? response.response.reduce((sum, val) => sum + val, 0) / response.response.length
+          : response.response;
+        
+        scores[question.category as keyof typeof scores] += responseValue;
+      }
+    });
+
+    return scores;
+  };
+
+  const generateRecommendations = (scores: any) => {
+    const recommendations = [];
+    
+    Object.entries(scores).forEach(([dimension, score]) => {
+      if (score < 10) {
+        recommendations.push(`Focus on improving your ${dimension} development`);
+      } else if (score > 15) {
+        recommendations.push(`Maintain your strength in ${dimension} development`);
+      }
+    });
+    
+    return recommendations;
   };
 
   const getCurrentResponse = () => {
@@ -203,6 +341,59 @@ export default function AssessmentPage() {
       // For single selection questions, any response is valid (including 0)
       return true;
     }
+  };
+
+  const getAnsweredQuestionsCount = () => {
+    let answeredCount = 0;
+    
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      const response = responses.find(r => r.question_id === question.id);
+      
+      if (response) {
+        if (question.allowMultiple) {
+          const responseArray = Array.isArray(response.response) ? response.response : [];
+          const minSelections = question.minSelections || 1;
+          if (responseArray.length >= minSelections) {
+            answeredCount++;
+          }
+        } else {
+          answeredCount++;
+        }
+      }
+    }
+    
+    return answeredCount;
+  };
+
+  const canSubmitAssessment = () => {
+    // Check if all questions are answered
+    console.log('🔍 Checking if assessment can be submitted...');
+    console.log('📊 Total questions:', questions.length);
+    console.log('📊 Total responses:', responses.length);
+    console.log('📊 Answered questions:', getAnsweredQuestionsCount());
+    
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      const response = responses.find(r => r.question_id === question.id);
+      
+      if (!response) {
+        console.log(`❌ Question ${i + 1} (${question.id}) not answered`);
+        return false;
+      }
+      
+      if (question.allowMultiple) {
+        const responseArray = Array.isArray(response.response) ? response.response : [];
+        const minSelections = question.minSelections || 1;
+        if (responseArray.length < minSelections) {
+          console.log(`❌ Question ${i + 1} (${question.id}) needs ${minSelections} selections, has ${responseArray.length}`);
+          return false;
+        }
+      }
+    }
+    
+    console.log('✅ All questions answered - assessment can be submitted!');
+    return true;
   };
 
   const getValidationMessage = () => {
@@ -328,9 +519,7 @@ export default function AssessmentPage() {
       mental: 'from-blue-500 to-cyan-500',
       spiritual: 'from-purple-500 to-pink-500',
       relational: 'from-yellow-500 to-orange-500',
-      financial: 'from-indigo-500 to-blue-500',
-      creative: 'from-pink-500 to-rose-500',
-      legacy: 'from-red-500 to-pink-500'
+      financial: 'from-indigo-500 to-blue-500'
     };
     return colors[category] || 'from-gray-500 to-slate-500';
   };
@@ -472,13 +661,27 @@ export default function AssessmentPage() {
               Previous
             </button>
 
-            <div className="flex items-center space-x-4">
-              {currentQuestionIndex === questions.length - 1 ? (
-                                 <button
-                   onClick={handleSubmit}
-                   disabled={(currentResponse === null || currentResponse === undefined) || isSubmitting}
-                   className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-semibold rounded-lg hover:from-yellow-300 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center"
-                 >
+            <div className="flex flex-col items-center space-y-4">
+              {currentQuestionIndex === questions.length - 1 && (
+                <div className="text-center">
+                  <div className="text-sm text-blue-200 mb-2">
+                    Questions Answered: {getAnsweredQuestionsCount()} / {questions.length}
+                  </div>
+                  {!canSubmitAssessment() && (
+                    <div className="text-xs text-red-300">
+                      Please answer all questions to complete the assessment
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-4">
+                {currentQuestionIndex === questions.length - 1 ? (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!canSubmitAssessment() || isSubmitting}
+                    className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-semibold rounded-lg hover:from-yellow-300 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center"
+                  >
                   {isSubmitting ? (
                     <>
                       <Loader2 size={16} className="mr-2 animate-spin" />
@@ -505,6 +708,7 @@ export default function AssessmentPage() {
                   <ArrowRight size={16} className="ml-2" />
                 </button>
               )}
+              </div>
             </div>
           </div>
         </div>

@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { ArrowRight, TrendingUp, Users, Target, Star, CheckCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 
 export default function LandingPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
 
   const handleAssessmentClick = () => {

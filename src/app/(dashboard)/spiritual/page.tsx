@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useState } from 'react';
 import Link from 'next/link';
 import { 
@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export default function SpiritualPage() {
-  const { user, updateUserData } = useAuth();
+  const { user, updateUserData } = useSupabaseAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
   if (!user) return null;

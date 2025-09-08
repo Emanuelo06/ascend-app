@@ -1,12 +1,12 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { UserIcon, ArrowLeftIcon, SaveIcon } from 'lucide-react';
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 

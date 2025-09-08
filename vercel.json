@@ -2,11 +2,16 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
+  "installCommand": "npm ci",
   "framework": "nextjs",
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 30
+    }
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
     }
   },
   "headers": [
@@ -70,5 +75,8 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "regions": ["iad1"],
+  "cleanUrls": true,
+  "trailingSlash": false
 }

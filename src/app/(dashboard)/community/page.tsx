@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeftIcon, 
@@ -58,7 +58,7 @@ interface Comment {
 }
 
 export default function CommunityPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'all' | 'encouragement' | 'milestone' | 'question' | 'prayer_request'>('all');
   const [searchQuery, setSearchQuery] = useState('');

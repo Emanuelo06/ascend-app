@@ -4,7 +4,7 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 // Wrapper component that uses useSearchParams
 function LoginForm() {
@@ -19,7 +19,7 @@ function LoginForm() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { signIn, signInWithGoogle, getRedirectPath } = useAuth();
+  const { signIn, signInWithGoogle, getRedirectPath } = useSupabaseAuth();
 
   // Get redirect URL from query params
   const redirectTo = searchParams.get('redirect') || '/dashboard';
@@ -39,16 +39,9 @@ function LoginForm() {
       if (signInError) {
         setError(signInError);
       } else {
-        // Get the user data to determine redirect path
-        const userData = localStorage.getItem('ascend_user_data');
-        if (userData) {
-          const user = JSON.parse(userData);
-          const redirectPath = getRedirectPath(user);
-          router.push(redirectPath);
-        } else {
-          // Fallback to dashboard if no user data
-          router.push('/dashboard');
-        }
+        // Redirect to dashboard where UserFlowManager will handle the routing
+        console.log('✅ Login successful - redirecting to dashboard');
+        router.push('/dashboard');
       }
     } catch (error) {
       setError('An unexpected error occurred');
@@ -111,16 +104,9 @@ function LoginForm() {
       if (error) {
         setError(error);
       } else {
-        // Get the user data to determine redirect path
-        const userData = localStorage.getItem('ascend_user_data');
-        if (userData) {
-          const user = JSON.parse(userData);
-          const redirectPath = getRedirectPath(user);
-          router.push(redirectPath);
-        } else {
-          // Fallback to dashboard if no user data
-          router.push('/dashboard');
-        }
+        // Redirect to dashboard where UserFlowManager will handle the routing
+        console.log('✅ Google sign-in successful - redirecting to dashboard');
+        router.push('/dashboard');
       }
     } catch (error) {
       setError('Google sign-in failed');

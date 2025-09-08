@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
@@ -42,7 +42,7 @@ interface UserProfile {
 }
 
 export default function SettingsPage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useSupabaseAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile>({
     id: '',

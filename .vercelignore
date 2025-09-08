@@ -1,0 +1,56 @@
+# Development files
+.env.local
+.env.development
+.env.test
+
+# Documentation
+*.md
+!README.md
+
+# Database setup files
+*-database-setup.sql
+*-setup-*.js
+*-setup-*.sql
+*-manual.js
+*-test-*.js
+*-diagnose-*.js
+
+# Deployment scripts
+deploy.ps1
+deploy.sh
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Build artifacts (keep .next for Vercel)
+.next/cache/
+
+# Node modules (handled by Vercel)
+node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.tgz
+*.tar.gz

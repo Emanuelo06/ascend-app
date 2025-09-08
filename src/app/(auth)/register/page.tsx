@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 export default function RegisterPage() {
   const [step, setStep] = useState(1);
@@ -27,7 +27,7 @@ export default function RegisterPage() {
   });
 
   const router = useRouter();
-  const { signUp, signInWithGoogle, getRedirectPath } = useAuth();
+  const { signUp, signInWithGoogle, getRedirectPath } = useSupabaseAuth();
 
   const handleInputChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -56,16 +56,9 @@ export default function RegisterPage() {
       if (signUpError) {
         setError(signUpError);
       } else {
-        // Get the user data to determine redirect path
-        const userData = localStorage.getItem('ascend_user_data');
-        if (userData) {
-          const user = JSON.parse(userData);
-          const redirectPath = getRedirectPath(user);
-          router.push(redirectPath);
-        } else {
-          // Fallback to onboarding if no user data
-          router.push('/onboarding/goals');
-        }
+        // Redirect to dashboard where UserFlowManager will handle the routing
+        console.log('✅ Registration successful - redirecting to dashboard');
+        router.push('/dashboard');
       }
     } catch (error) {
       setError('An unexpected error occurred');
@@ -127,16 +120,9 @@ export default function RegisterPage() {
       if (error) {
         setError(error);
       } else {
-        // Get the user data to determine redirect path
-        const userData = localStorage.getItem('ascend_user_data');
-        if (userData) {
-          const user = JSON.parse(userData);
-          const redirectPath = getRedirectPath(user);
-          router.push(redirectPath);
-        } else {
-          // Fallback to onboarding if no user data
-          router.push('/onboarding/goals');
-        }
+        // Redirect to dashboard where UserFlowManager will handle the routing
+        console.log('✅ Google sign-in successful - redirecting to dashboard');
+        router.push('/dashboard');
       }
     } catch (error) {
       setError('Google sign-in failed');

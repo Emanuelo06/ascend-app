@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeftIcon, 
@@ -46,7 +46,7 @@ interface Goal {
 }
 
 export default function OnboardingPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -117,24 +117,6 @@ export default function OnboardingPage() {
       category: 'career',
       priority: 'medium',
       timeline: '6-12 months',
-      selected: false
-    },
-    {
-      id: '7',
-      title: 'Creative Expression',
-      description: 'Explore and develop creative talents and artistic abilities',
-      category: 'creative',
-      priority: 'low',
-      timeline: '1+ years',
-      selected: false
-    },
-    {
-      id: '8',
-      title: 'Legacy Building',
-      description: 'Create lasting impact and leave a meaningful legacy for future generations',
-      category: 'legacy',
-      priority: 'low',
-      timeline: '1+ years',
       selected: false
     }
   ]);

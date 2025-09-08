@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   DumbbellIcon,
@@ -46,7 +46,7 @@ interface WorkoutExercise {
 }
 
 export default function WorkoutsPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   HeartIcon, UtensilsIcon, TargetIcon, ClockIcon, 
@@ -30,7 +30,7 @@ interface NutritionPlan {
 }
 
 export default function NutritionPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<NutritionPlan | null>(null);

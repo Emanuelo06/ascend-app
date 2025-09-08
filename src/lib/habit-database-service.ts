@@ -1,11 +1,42 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Habit, HabitCheckin, HabitMetrics, HabitOccurrence } from '@/types';
+import { config } from './config';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Lazy-loaded Supabase Client to avoid build-time errors
+let supabaseInstance: SupabaseClient | null = null;
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+function createSupabaseClient(): SupabaseClient {
+  // Check if we're in a browser environment
+  if (typeof window === 'undefined') {
+    // Server-side: check if environment variables are available
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      // During build time, return a mock client to prevent build failures
+      return createClient('https://placeholder.supabase.co', 'placeholder-key');
+    }
+  }
+
+  const url = config.supabase.url;
+  const anonKey = config.supabase.anonKey;
+
+  if (!url || !anonKey) {
+    throw new Error('Supabase URL and anon key are required. Please check your environment variables.');
+  }
+
+  return createClient(url, anonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  });
+}
+
+function getSupabaseClient(): SupabaseClient {
+  if (!supabaseInstance) {
+    supabaseInstance = createSupabaseClient();
+  }
+  return supabaseInstance;
+}
 
 export class HabitDatabaseService {
   private static instance: HabitDatabaseService;
@@ -21,6 +52,7 @@ export class HabitDatabaseService {
 
   // Habit Management
   async createHabit(habit: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'>): Promise<Habit> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('habits')
       .insert({
@@ -36,6 +68,7 @@ export class HabitDatabaseService {
   }
 
   async getHabitsByUser(userId: string): Promise<Habit[]> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('habits')
       .select('*')
@@ -48,6 +81,7 @@ export class HabitDatabaseService {
   }
 
   async updateHabit(habitId: string, updates: Partial<Habit>): Promise<Habit> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('habits')
       .update({
@@ -63,6 +97,7 @@ export class HabitDatabaseService {
   }
 
   async archiveHabit(habitId: string): Promise<void> {
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('habits')
       .update({ archived: true, updated_at: new Date().toISOString() })
@@ -73,6 +108,7 @@ export class HabitDatabaseService {
 
   // Habit Checkins
   async createCheckin(checkin: Omit<HabitCheckin, 'id' | 'createdAt'>): Promise<HabitCheckin> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('habit_checkins')
       .insert({
@@ -87,6 +123,7 @@ export class HabitDatabaseService {
   }
 
   async updateCheckin(checkinId: string, updates: Partial<HabitCheckin>): Promise<HabitCheckin> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('habit_checkins')
       .update({
@@ -102,6 +139,7 @@ export class HabitDatabaseService {
   }
 
   async getCheckinsByHabit(habitId: string, startDate?: string, endDate?: string): Promise<HabitCheckin[]> {
+    const supabase = getSupabaseClient();
     let query = supabase
       .from('habit_checkins')
       .select('*')
@@ -121,6 +159,7 @@ export class HabitDatabaseService {
   }
 
   async getCheckinsByUser(userId: string, date?: string): Promise<HabitCheckin[]> {
+    const supabase = getSupabaseClient();
     let query = supabase
       .from('habit_checkins')
       .select('*')
@@ -136,8 +175,23 @@ export class HabitDatabaseService {
     return data.map(this.mapCheckinFromDB);
   }
 
+  async getCheckinsByUserInRange(userId: string, startDate: string, endDate: string): Promise<HabitCheckin[]> {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('habit_checkins')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false });
+
+    if (error) throw new Error(`Failed to fetch checkins in range: ${error.message}`);
+    return data.map(this.mapCheckinFromDB);
+  }
+
   // Habit Metrics
   async getHabitMetrics(habitId: string): Promise<HabitMetrics | null> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('habit_metrics')
       .select('*')
@@ -152,6 +206,7 @@ export class HabitDatabaseService {
   }
 
   async updateHabitMetrics(metrics: Omit<HabitMetrics, 'id' | 'lastUpdated'>): Promise<HabitMetrics> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('habit_metrics')
       .upsert({
@@ -192,6 +247,7 @@ export class HabitDatabaseService {
 
   // Analytics and Reporting
   async getHabitStreak(habitId: string): Promise<number> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('habit_checkins')
       .select('date, status')

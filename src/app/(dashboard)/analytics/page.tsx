@@ -1,423 +1,865 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { databaseService } from '@/lib/supabase';
 import { 
-  BarChart3, 
   TrendingUp, 
   Target, 
   Calendar,
-  Brain,
   Award,
+  Lightbulb, 
+  CheckCircle, 
+  AlertCircle,
   Clock,
+  BarChart3,
+  Activity,
   Zap,
-  Flame,
+  ArrowRight,
+  RefreshCw,
+  TrendingDown,
+  Eye,
+  Plus,
+  Minus,
   Star,
-  CheckCircle,
-  Users,
-  Lightbulb,
-  Bell,
-  Activity
+  Flame
 } from 'lucide-react';
-import { Habit, HabitCheckin } from '@/types';
-import HabitAnalytics from '@/components/HabitAnalytics';
-import AIHabitRecommendations from '@/components/AIHabitRecommendations';
-import AdvancedHabitInsights from '@/components/AdvancedHabitInsights';
-import SmartNotifications from '@/components/SmartNotifications';
-import AdvancedTrendAnalysis from '@/components/AdvancedTrendAnalysis';
-import SocialAccountability from '@/components/SocialAccountability';
-import AIPersonalization from '@/components/AIPersonalization';
-import AdaptiveLearning from '@/components/AdaptiveLearning';
-import PredictiveAnalytics from '@/components/PredictiveAnalytics';
-import EnhancedHabitDashboard from '@/components/EnhancedHabitDashboard';
-import HabitInsightsEngine from '@/components/HabitInsightsEngine';
+
+interface WeeklySnapshot {
+  id: string;
+  week_start: string;
+  week_end: string;
+  completion_percentage: number;
+  total_habits: number;
+  completed_habits: number;
+  current_streak: number;
+  best_streak: number;
+  avg_mood?: number;
+  avg_energy?: number;
+  best_moment?: string;
+  worst_moment?: string;
+  top_habits: string[];
+  struggling_habits: string[];
+  ai_summary?: string;
+  ai_insights: any[];
+}
+
+interface HeatmapDay {
+  date: string;
+  completion_percentage: number;
+  total_habits: number;
+  completed_habits: number;
+  partial_habits: number;
+  missed_habits: number;
+  mood_score?: number;
+  energy_level?: number;
+  notes?: string;
+  status: 'excellent' | 'good' | 'partial' | 'poor';
+}
+
+interface Insight {
+  id: string;
+  insight_type: string;
+  priority: string;
+  title: string;
+  description: string;
+  evidence: string;
+  suggested_action: string;
+  action_type: string;
+  action_data: any;
+  is_applied: boolean;
+  dismissed: boolean;
+}
+
+interface WeeklyFocus {
+  id: string;
+  focus_title: string;
+  focus_description: string;
+  focus_type: string;
+  target_habits: string[];
+  target_completion_rate: number;
+  target_streak: number;
+  current_progress: number;
+  is_achieved: boolean;
+  is_ai_generated: boolean;
+}
+
+interface HabitDetail {
+  id: string;
+  title: string;
+  moment: string;
+  completion_rate: number;
+  current_streak: number;
+  best_streak: number;
+  last_checkin?: string;
+}
 
 export default function AnalyticsPage() {
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [checkins, setCheckins] = useState<HabitCheckin[]>([]);
+  const { user } = useSupabaseAuth();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'enhanced-dashboard' | 'insights-engine' | 'analytics' | 'ai-insights' | 'advanced-insights' | 'notifications' | 'trends' | 'social' | 'ai-personalization' | 'adaptive-learning' | 'predictive'>('overview');
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [showHabitDetails, setShowHabitDetails] = useState(false);
+  
+  // Data states
+  const [weeklySnapshot, setWeeklySnapshot] = useState<WeeklySnapshot | null>(null);
+  const [heatmapData, setHeatmapData] = useState<HeatmapDay[]>([]);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [weeklyFocus, setWeeklyFocus] = useState<WeeklyFocus | null>(null);
+  const [habitDetails, setHabitDetails] = useState<HabitDetail[]>([]);
 
   useEffect(() => {
-    // Load mock data for demonstration
-    const mockHabits: Habit[] = [
-      {
-        id: '1',
-        userId: 'demo-user',
-        title: 'Morning Prayer',
-        purpose: 'Start the day with gratitude and spiritual connection',
-        moment: 'morning',
-        cadence: { type: 'daily' },
-        dose: { unit: 'minutes', target: 10 },
-        window: { start: '07:00', end: '11:00' },
-        difficulty: 2,
-        archived: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '2',
-        userId: 'demo-user',
-        title: 'Hydration',
-        purpose: 'Stay hydrated throughout the day',
-        moment: 'morning',
-        cadence: { type: 'daily' },
-        dose: { unit: 'liters', target: 2 },
-        window: { start: '06:00', end: '22:00' },
-        difficulty: 1,
-        archived: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '3',
-        userId: 'demo-user',
-        title: 'Deep Work',
-        purpose: 'Uninterrupted focused work sessions',
-        moment: 'morning',
-        cadence: { type: 'weekdays' },
-        dose: { unit: 'minutes', target: 90 },
-        window: { start: '08:00', end: '12:00' },
-        difficulty: 3,
-        archived: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '4',
-        userId: 'demo-user',
-        title: 'Mindful Breaks',
-        purpose: 'Take intentional breaks to maintain focus',
-        moment: 'midday',
-        cadence: { type: 'daily' },
-        dose: { unit: 'minutes', target: 5 },
-        window: { start: '12:00', end: '14:00' },
-        difficulty: 1,
-        archived: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '5',
-        userId: 'demo-user',
-        title: 'Evening Reflection',
-        purpose: 'End the day with gratitude and prayer',
-        moment: 'evening',
-        cadence: { type: 'daily' },
-        dose: { unit: 'minutes', target: 5 },
-        window: { start: '20:00', end: '22:00' },
-        difficulty: 1,
-        archived: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
+    if (user?.id) {
+      loadAnalyticsData();
+    }
+  }, [user?.id]);
 
-    const mockCheckins: HabitCheckin[] = [
-      {
-        id: '1',
-        userId: 'demo-user',
-        habitId: '1',
-        date: new Date().toISOString().split('T')[0],
-        status: 'done',
-        effort: 2,
-        doseActual: 10,
-        note: 'Felt very connected today',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: '2',
-        userId: 'demo-user',
-        habitId: '2',
-        date: new Date().toISOString().split('T')[0],
-        status: 'partial',
-        effort: 1,
-        doseActual: 1.5,
-        note: 'Need to drink more water',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: '3',
-        userId: 'demo-user',
-        habitId: '3',
-        date: new Date().toISOString().split('T')[0],
-        status: 'done',
-        effort: 3,
-        doseActual: 90,
-        note: 'Great focus session',
-        createdAt: new Date().toISOString()
-      }
-    ];
-
-    setHabits(mockHabits);
-    setCheckins(mockCheckins);
-    setLoading(false);
-  }, []);
-
-  const handleApplyRecommendation = (recommendation: any) => {
-    // Handle applying AI recommendations
-    console.log('Applying recommendation:', recommendation);
-    // In a real app, this would trigger specific actions
+  const loadAnalyticsData = async () => {
+    if (!user?.id) return;
+    
+    setLoading(true);
+    try {
+      await Promise.all([
+        loadWeeklySnapshot(),
+        loadHeatmapData(),
+        loadInsights(),
+        loadWeeklyFocus(),
+        loadHabitDetails()
+      ]);
+    } catch (error) {
+      console.error('Error loading analytics data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'enhanced-dashboard', label: 'Enhanced Dashboard', icon: BarChart3 },
-    { id: 'insights-engine', label: 'Insights Engine', icon: Brain },
-    { id: 'analytics', label: 'Habit Analytics', icon: Target },
-    { id: 'ai-insights', label: 'AI Insights', icon: Brain },
-    { id: 'advanced-insights', label: 'Advanced Insights', icon: TrendingUp },
-    { id: 'notifications', label: 'Smart Notifications', icon: Bell },
-    { id: 'trends', label: 'Trends', icon: TrendingUp },
-    { id: 'social', label: 'Social & Community', icon: Users },
-    { id: 'ai-personalization', label: 'AI Personalization', icon: Lightbulb },
-    { id: 'adaptive-learning', label: 'Adaptive Learning', icon: Target },
-    { id: 'predictive', label: 'Predictive Analytics', icon: TrendingUp }
-  ];
+  const loadWeeklySnapshot = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log('🔄 Loading weekly snapshot for user:', user.id);
+      
+      // Load habits and check-ins for the past week
+      const habits = await databaseService.getHabits(user.id);
+      const today = new Date();
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      let totalCheckins = 0;
+      let completedCheckins = 0;
+      
+      for (const habit of habits) {
+        const checkins = await databaseService.getHabitCheckins(user.id, habit.id);
+        const weekCheckins = checkins.filter(checkin => 
+          new Date(checkin.date) >= weekAgo && new Date(checkin.date) <= today
+        );
+        
+        totalCheckins += weekCheckins.length;
+        completedCheckins += weekCheckins.filter(c => c.completed).length;
+      }
+      
+      const completionRate = totalCheckins > 0 ? (completedCheckins / totalCheckins) * 100 : 0;
+      
+      const snapshot: WeeklySnapshot = {
+        week_start: weekAgo.toISOString().split('T')[0],
+        week_end: today.toISOString().split('T')[0],
+        overall_completion: Math.round(completionRate),
+        total_habits: habits.length,
+        completed_habits: habits.filter(h => {
+          // Check if habit was completed at least once this week
+          return true; // TODO: Implement proper completion check
+        }).length,
+        current_streak: 0, // TODO: Calculate actual streak
+        best_streak: 0, // TODO: Calculate best streak
+        mood_trend: 'stable', // TODO: Calculate from user progress
+        energy_trend: 'stable', // TODO: Calculate from user progress
+        ai_summary: `You completed ${completedCheckins} out of ${totalCheckins} habit check-ins this week. Keep up the great work!`
+      };
+      
+      setWeeklySnapshot(snapshot);
+    } catch (error) {
+      console.error('Error loading weekly snapshot:', error);
+    }
+  };
+
+  const loadHeatmapData = async () => {
+    try {
+      const response = await fetch(`/api/analytics/progress-heatmap?userId=${user?.id}&period=30`);
+      const data = await response.json();
+      if (data.data) {
+        setHeatmapData(data.data);
+      }
+    } catch (error) {
+      console.error('Error loading heatmap data:', error);
+    }
+  };
+
+  const loadInsights = async () => {
+    try {
+      const response = await fetch(`/api/analytics/insights?userId=${user?.id}&type=weekly&limit=5`);
+      const data = await response.json();
+      if (data.data) {
+        setInsights(data.data);
+      }
+    } catch (error) {
+      console.error('Error loading insights:', error);
+    }
+  };
+
+  const loadWeeklyFocus = async () => {
+    try {
+      const response = await fetch(`/api/analytics/weekly-focus?userId=${user?.id}`);
+      const data = await response.json();
+      if (data.data) {
+        setWeeklyFocus(data.data);
+      }
+    } catch (error) {
+      console.error('Error loading weekly focus:', error);
+    }
+  };
+
+  const loadHabitDetails = async () => {
+    try {
+      const response = await fetch(`/api/habits?userId=${user?.id}`);
+      const data = await response.json();
+      if (data.data) {
+        setHabitDetails(data.data);
+      }
+    } catch (error) {
+      console.error('Error loading habit details:', error);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadAnalyticsData();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleApplyInsight = async (insightId: string) => {
+    try {
+      const response = await fetch('/api/analytics/insights', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          insightId,
+          action: 'apply',
+          userId: user?.id
+        })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setInsights(prev => prev.map(insight => 
+          insight.id === insightId 
+            ? { ...insight, is_applied: true }
+            : insight
+        ));
+      }
+    } catch (error) {
+      console.error('Error applying insight:', error);
+    }
+  };
+
+  const handleDismissInsight = async (insightId: string) => {
+    try {
+      const response = await fetch('/api/analytics/insights', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          insightId,
+          action: 'dismiss',
+          userId: user?.id
+        })
+      });
+
+      if (response.ok) {
+        // Remove from local state
+        setInsights(prev => prev.filter(insight => insight.id !== insightId));
+      }
+    } catch (error) {
+      console.error('Error dismissing insight:', error);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'excellent': return 'bg-green-500';
+      case 'good': return 'bg-blue-500';
+      case 'partial': return 'bg-yellow-500';
+      case 'poor': return 'bg-red-500';
+      default: return 'bg-gray-300';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'text-red-500';
+      case 'medium': return 'text-yellow-500';
+      case 'low': return 'text-green-500';
+      default: return 'text-gray-500';
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-8 bg-white/20 rounded w-1/4 mb-6"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="h-64 bg-white/10 rounded-xl"></div>
+              <div className="h-64 bg-white/10 rounded-xl"></div>
+              <div className="h-64 bg-white/10 rounded-xl"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-      {/* Header */}
-      <div className="backdrop-blur-sm border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">Analytics & Insights</h1>
-              <p className="text-blue-200 text-sm sm:text-base md:text-lg leading-relaxed">
-                Deep dive into your habit performance and get AI-powered recommendations
-              </p>
-            </div>
-            <div className="text-center sm:text-right">
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
-                {new Date().toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  year: 'numeric' 
-                })}
-              </div>
-              <div className="text-blue-200 text-xs sm:text-sm">Monthly Overview</div>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">Weekly Review & Analytics</h1>
+            <p className="text-blue-200">Your complete habit progress dashboard with AI insights</p>
           </div>
+          <div className="flex items-center space-x-3">
+            <Button
+              onClick={() => setShowHabitDetails(!showHabitDetails)}
+              variant="ghost"
+              className="text-blue-200 hover:text-white hover:bg-white/10"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              {showHabitDetails ? 'Hide' : 'Show'} Details
+            </Button>
+            <Button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        {/* Weekly Snapshot */}
+        {weeklySnapshot && (
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white flex items-center">
+                <Calendar className="w-6 h-6 mr-2 text-yellow-400" />
+                Weekly Snapshot
+              </h2>
+              <div className="text-sm text-blue-200">
+                {new Date(weeklySnapshot.week_start).toLocaleDateString()} - {new Date(weeklySnapshot.week_end).toLocaleDateString()}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white mb-1">
+                  {weeklySnapshot.completion_percentage}%
+          </div>
+                <div className="text-blue-200 text-sm">Completion Rate</div>
+                <div className="text-xs text-gray-400 mt-1">
+                  {weeklySnapshot.completed_habits}/{weeklySnapshot.total_habits} habits
+        </div>
+      </div>
+              
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white mb-1 flex items-center justify-center">
+                  <Zap className="w-6 h-6 mr-1 text-orange-400" />
+                  {weeklySnapshot.current_streak}
+          </div>
+                <div className="text-blue-200 text-sm">Current Streak</div>
+                <div className="text-xs text-gray-400 mt-1">
+                  Best: {weeklySnapshot.best_streak} days
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
-        <div className="backdrop-blur-sm rounded-2xl p-2 border border-white/20 shadow-xl overflow-x-auto">
-          <div className="flex space-x-1 sm:space-x-2 min-w-max">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-xl font-medium transition-all duration-200 text-xs sm:text-sm whitespace-nowrap ${
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+              {weeklySnapshot.avg_mood && (
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white mb-1">
+                    {weeklySnapshot.avg_mood.toFixed(1)}
+                  </div>
+                  <div className="text-blue-200 text-sm">Avg Mood</div>
+                  <div className="text-xs text-gray-400 mt-1">1-10 scale</div>
+                </div>
+              )}
+                
+              {weeklySnapshot.best_moment && (
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white mb-1 capitalize">
+                    {weeklySnapshot.best_moment}
+                  </div>
+                  <div className="text-blue-200 text-sm">Best Moment</div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {weeklySnapshot.worst_moment && `vs ${weeklySnapshot.worst_moment}`}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {weeklySnapshot.ai_summary && (
+              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                <div className="flex items-start">
+                  <Lightbulb className="w-5 h-5 text-yellow-400 mr-3 mt-0.5 flex-shrink-0" />
+                  <p className="text-blue-100 text-sm leading-relaxed">
+                    {weeklySnapshot.ai_summary}
+                  </p>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Progress Tracking & Analytics */}
+        <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white flex items-center">
+              <BarChart3 className="w-6 h-6 mr-2 text-blue-400" />
+              Progress Tracking & Analytics
+            </h2>
+            <div className="flex space-x-2">
+              {(['daily', 'weekly', 'monthly'] as const).map((tab) => (
+                <Button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  variant={activeTab === tab ? 'default' : 'ghost'}
+                  className={`capitalize ${
+                    activeTab === tab 
+                      ? 'bg-white/20 text-white' 
                       : 'text-blue-200 hover:text-white hover:bg-white/10'
                   }`}
                 >
-                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span className="hidden xs:inline">{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-8 sm:pb-12">
-        {activeTab === 'overview' && (
-          <div className="space-y-6 sm:space-y-8">
-            {/* Quick Stats */}
-            <div className="backdrop-blur-sm rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 shadow-2xl">
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 text-center">Quick Overview</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                <div className="text-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-blue-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                    <Target className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400" />
-                  </div>
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-400 mb-1 sm:mb-2">{habits.filter(h => !h.archived).length}</div>
-                  <div className="text-blue-200 text-xs sm:text-sm">Active Habits</div>
+                  {tab}
+                </Button>
+              ))}
+            </div>
                 </div>
                 
-                <div className="text-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-green-500/20 to-emerald-600/20 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                    <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-green-400" />
+          {activeTab === 'daily' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">Daily Heatmap (Last 30 Days)</h3>
+                <div className="flex items-center space-x-4 text-sm">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                    <span className="text-blue-200">80%+</span>
                   </div>
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-400 mb-1 sm:mb-2">{checkins.filter(c => c.status === 'done').length}</div>
-                  <div className="text-green-200 text-xs sm:text-sm">Completed Today</div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                    <span className="text-blue-200">60-79%</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
+                    <span className="text-blue-200">30-59%</span>
                 </div>
-                
-                <div className="text-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-yellow-500/20 to-orange-600/20 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                    <Flame className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400" />
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
+                    <span className="text-blue-200">&lt;30%</span>
                   </div>
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-yellow-400 mb-1 sm:mb-2">7</div>
-                  <div className="text-yellow-200 text-xs sm:text-sm">Day Streak</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-purple-500/20 to-pink-600/20 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                    <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400" />
-                  </div>
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-400 mb-1 sm:mb-2">+15%</div>
-                  <div className="text-purple-200 text-xs sm:text-sm">vs Last Week</div>
                 </div>
               </div>
+              
+              <div className="grid grid-cols-7 gap-2">
+                {heatmapData.slice(-30).map((day, index) => (
+                  <div
+                    key={day.date}
+                    onClick={() => setSelectedDay(selectedDay === day.date ? null : day.date)}
+                    className={`aspect-square rounded ${getStatusColor(day.status)} opacity-80 hover:opacity-100 transition-all cursor-pointer ${
+                      selectedDay === day.date ? 'ring-2 ring-white/50 scale-105' : ''
+                    }`}
+                    title={`${new Date(day.date).toLocaleDateString()}: ${day.completion_percentage}% (${day.completed_habits}/${day.total_habits})`}
+                  />
+                ))}
             </div>
 
-            {/* Recent Activity */}
-            <div className="backdrop-blur-sm rounded-3xl p-8 border border-white/20 shadow-2xl">
-              <h3 className="text-2xl font-bold text-white mb-6 text-center">Recent Activity</h3>
-              <div className="space-y-4">
-                {checkins.slice(0, 5).map((checkin) => {
-                  const habit = habits.find(h => h.id === checkin.habitId);
-                  if (!habit) return null;
+              {/* Selected Day Details */}
+              {selectedDay && (
+                <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-lg font-semibold text-white">
+                      {new Date(selectedDay).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </h4>
+                    <Button
+                      onClick={() => setSelectedDay(null)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  {(() => {
+                    const dayData = heatmapData.find(d => d.date === selectedDay);
+                    if (!dayData) return null;
                   
                   return (
-                    <div key={checkin.id} className="bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-3 h-3 rounded-full ${
-                            checkin.status === 'done' ? 'bg-green-400' : 
-                            checkin.status === 'partial' ? 'bg-yellow-400' : 'bg-red-400'
-                          }`}></div>
-                          <div>
-                            <div className="font-semibold text-white">{habit.title}</div>
-                            <div className="text-blue-200 text-sm">
-                              {new Date(checkin.createdAt).toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-white mb-1">
+                            {dayData.completion_percentage}%
                             </div>
+                          <div className="text-blue-200 text-sm">Completion Rate</div>
+                          <div className="text-xs text-gray-400">
+                            {dayData.completed_habits}/{dayData.total_habits} habits
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm text-blue-200">Effort: {checkin.effort}/3</div>
-                          {checkin.note && (
-                            <div className="text-xs text-blue-300 italic">"{checkin.note}"</div>
+                        
+                        {dayData.mood_score && (
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-white mb-1">
+                              {dayData.mood_score}/10
+                            </div>
+                            <div className="text-blue-200 text-sm">Mood Score</div>
+                          </div>
+                        )}
+                        
+                        {dayData.energy_level && (
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-white mb-1">
+                              {dayData.energy_level}/10
+                            </div>
+                            <div className="text-blue-200 text-sm">Energy Level</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'weekly' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Weekly Trends</h3>
+                {weeklySnapshot && (
+                  <div className="text-sm text-blue-200">
+                    Week of {new Date(weeklySnapshot.week_start).toLocaleDateString()}
+                  </div>
                           )}
                         </div>
+              
+              {/* Weekly Bar Chart */}
+              <div className="grid grid-cols-7 gap-4">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+                  const dayData = heatmapData.filter(d => {
+                    const date = new Date(d.date);
+                    return date.getDay() === (index + 1) % 7;
+                  });
+                  const avgCompletion = dayData.length > 0 
+                    ? Math.round(dayData.reduce((sum, d) => sum + d.completion_percentage, 0) / dayData.length)
+                    : 0;
+                  
+                  return (
+                    <div key={day} className="text-center">
+                      <div className="text-blue-200 text-sm mb-2">{day}</div>
+                      <div className={`h-16 rounded-lg flex items-end justify-center relative ${
+                        avgCompletion >= 80 ? 'bg-green-500' :
+                        avgCompletion >= 60 ? 'bg-blue-500' :
+                        avgCompletion >= 30 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`} style={{ height: `${Math.max(20, avgCompletion)}px` }}>
+                        <span className="text-white text-xs font-semibold">{avgCompletion}%</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
 
-            {/* Quick Actions */}
-            <div className="backdrop-blur-sm rounded-3xl p-8 border border-white/20 shadow-2xl">
-              <h3 className="text-2xl font-bold text-white mb-6 text-center">Quick Actions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <button className="bg-gradient-to-r from-blue-500/20 to-purple-600/20 backdrop-blur-sm rounded-2xl p-6 border border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 hover:scale-105">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Target className="w-8 h-8 text-blue-400" />
+              {/* Weekly Analytics Summary */}
+              {weeklySnapshot && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <div className="flex items-center mb-2">
+                      <TrendingUp className="w-4 h-4 text-green-400 mr-2" />
+                      <span className="text-white font-semibold">Best Day</span>
+                    </div>
+                    <div className="text-blue-200 text-sm">
+                      {(() => {
+                        const dayData = heatmapData.filter(d => {
+                          const weekStart = new Date(weeklySnapshot.week_start);
+                          const weekEnd = new Date(weeklySnapshot.week_end);
+                          const date = new Date(d.date);
+                          return date >= weekStart && date <= weekEnd;
+                        });
+                        const bestDay = dayData.reduce((best, current) => 
+                          current.completion_percentage > best.completion_percentage ? current : best
+                        );
+                        return bestDay ? `${new Date(bestDay.date).toLocaleDateString('en-US', { weekday: 'long' })} (${bestDay.completion_percentage}%)` : 'No data';
+                      })()}
+                    </div>
                   </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">View Detailed Analytics</h4>
-                  <p className="text-blue-200 text-sm">Deep dive into your habit performance</p>
-                </button>
-                
-                <button className="bg-gradient-to-r from-green-500/20 to-emerald-600/20 backdrop-blur-sm rounded-2xl p-6 border border-green-400/30 hover:border-green-400/50 transition-all duration-300 hover:scale-105">
-                  <div className="w-16 h-16 bg-gradient-to-r from-green-500/20 to-emerald-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Brain className="w-8 h-8 text-green-400" />
+
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <div className="flex items-center mb-2">
+                      <TrendingDown className="w-4 h-4 text-yellow-400 mr-2" />
+                      <span className="text-white font-semibold">Needs Attention</span>
+                    </div>
+                    <div className="text-blue-200 text-sm">
+                      {(() => {
+                        const dayData = heatmapData.filter(d => {
+                          const weekStart = new Date(weeklySnapshot.week_start);
+                          const weekEnd = new Date(weeklySnapshot.week_end);
+                          const date = new Date(d.date);
+                          return date >= weekStart && date <= weekEnd;
+                        });
+                        const worstDay = dayData.reduce((worst, current) => 
+                          current.completion_percentage < worst.completion_percentage ? current : worst
+                        );
+                        return worstDay ? `${new Date(worstDay.date).toLocaleDateString('en-US', { weekday: 'long' })} (${worstDay.completion_percentage}%)` : 'No data';
+                      })()}
+                    </div>
                   </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Get AI Insights</h4>
-                  <p className="text-green-200 text-sm">Personalized recommendations</p>
-                </button>
-                
-                <button className="bg-gradient-to-r from-yellow-500/20 to-orange-600/20 backdrop-blur-sm rounded-2xl p-6 border border-yellow-400/30 hover:border-yellow-400/50 transition-all duration-300 hover:scale-105">
-                  <div className="w-16 h-16 bg-gradient-to-r from-yellow-500/20 to-orange-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <TrendingUp className="w-8 h-8 text-yellow-400" />
+
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <div className="flex items-center mb-2">
+                      <Flame className="w-4 h-4 text-orange-400 mr-2" />
+                      <span className="text-white font-semibold">Consistency</span>
+                    </div>
+                    <div className="text-blue-200 text-sm">
+                      {(() => {
+                        const dayData = heatmapData.filter(d => {
+                          const weekStart = new Date(weeklySnapshot.week_start);
+                          const weekEnd = new Date(weeklySnapshot.week_end);
+                          const date = new Date(d.date);
+                          return date >= weekStart && date <= weekEnd;
+                        });
+                        const consistentDays = dayData.filter(d => d.completion_percentage >= 70).length;
+                        return `${consistentDays}/${dayData.length} days consistent`;
+                      })()}
+                    </div>
                   </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Track Trends</h4>
-                  <p className="text-yellow-200 text-sm">See your progress over time</p>
-                </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'monthly' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">Monthly Overview</h3>
+              <div className="text-center text-blue-200">
+                Monthly trend visualization coming soon...
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Habit Details Section */}
+          {showHabitDetails && (
+            <div className="mt-6 pt-6 border-t border-white/10">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <Activity className="w-5 h-5 mr-2 text-purple-400" />
+                Habit Performance Details
+              </h3>
+              
+              {habitDetails.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {habitDetails.map((habit) => (
+                    <div key={habit.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                      <div className="flex items-start justify-between mb-3">
+                        <h4 className="text-white font-semibold">{habit.title}</h4>
+                        <span className={`text-xs px-2 py-1 rounded-full capitalize ${
+                          habit.moment === 'morning' ? 'bg-yellow-500/20 text-yellow-400' :
+                          habit.moment === 'midday' ? 'bg-blue-500/20 text-blue-400' :
+                          'bg-purple-500/20 text-purple-400'
+                        }`}>
+                          {habit.moment}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-blue-200 text-sm">Completion Rate</span>
+                          <span className="text-white font-semibold">{habit.completion_rate}%</span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <span className="text-blue-200 text-sm">Current Streak</span>
+                          <div className="flex items-center">
+                            <Flame className="w-3 h-3 text-orange-400 mr-1" />
+                            <span className="text-white font-semibold">{habit.current_streak}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <span className="text-blue-200 text-sm">Best Streak</span>
+                          <div className="flex items-center">
+                            <Star className="w-3 h-3 text-yellow-400 mr-1" />
+                            <span className="text-white font-semibold">{habit.best_streak}</span>
+                          </div>
+                        </div>
+                        
+                        {habit.last_checkin && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-blue-200 text-sm">Last Check-in</span>
+                            <span className="text-gray-400 text-xs">
+                              {new Date(habit.last_checkin).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-blue-200 py-8">
+                  <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No habits found. Create some habits to see detailed analytics.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* Insights */}
+        {insights.length > 0 && (
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-6 mb-8">
+            <h2 className="text-2xl font-bold text-white flex items-center mb-6">
+              <Lightbulb className="w-6 h-6 mr-2 text-yellow-400" />
+              AI Insights
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {insights.map((insight) => (
+                <div key={insight.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-white">{insight.title}</h3>
+                    <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(insight.priority)} bg-white/10`}>
+                      {insight.priority}
+                    </span>
+                  </div>
+                  
+                  <p className="text-blue-200 text-sm mb-3">{insight.description}</p>
+                
+                  <div className="text-xs text-gray-400 mb-4">
+                    <strong>Evidence:</strong> {insight.evidence}
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleApplyInsight(insight.id)}
+                      disabled={insight.is_applied}
+                      className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border-green-500/30"
+                    >
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {insight.is_applied ? 'Applied' : 'Apply'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDismissInsight(insight.id)}
+                      className="text-gray-400 hover:text-white hover:bg-white/10"
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+              </div>
+              ))}
+            </div>
+          </Card>
         )}
 
-        {activeTab === 'enhanced-dashboard' && (
-          <EnhancedHabitDashboard 
-            userId="demo-user"
-            habits={habits} 
-            checkins={checkins} 
-            metrics={[]} // Mock metrics for now
-          />
+        {/* Wins & Challenges */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-6">
+            <h2 className="text-xl font-bold text-white flex items-center mb-4">
+              <Award className="w-5 h-5 mr-2 text-green-400" />
+              Wins
+            </h2>
+            <div className="space-y-3">
+              {weeklySnapshot?.current_streak > 0 && (
+                <div className="flex items-center text-green-400">
+                  <Zap className="w-4 h-4 mr-2" />
+                  <span className="text-sm">{weeklySnapshot.current_streak}-day streak!</span>
+                </div>
+              )}
+              {weeklySnapshot?.completion_percentage >= 80 && (
+                <div className="flex items-center text-green-400">
+                  <Target className="w-4 h-4 mr-2" />
+                  <span className="text-sm">Excellent completion rate ({weeklySnapshot.completion_percentage}%)</span>
+                </div>
+              )}
+              {weeklySnapshot?.best_moment && (
+                <div className="flex items-center text-green-400">
+                  <Clock className="w-4 h-4 mr-2" />
+                  <span className="text-sm">Strong {weeklySnapshot.best_moment} routine</span>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-6">
+            <h2 className="text-xl font-bold text-white flex items-center mb-4">
+              <AlertCircle className="w-5 h-5 mr-2 text-yellow-400" />
+              Opportunities
+            </h2>
+            <div className="space-y-3">
+              {weeklySnapshot?.worst_moment && (
+                <div className="flex items-center text-yellow-400">
+                  <Clock className="w-4 h-4 mr-2" />
+                  <span className="text-sm">Optimize {weeklySnapshot.worst_moment} habits</span>
+                </div>
+              )}
+              {weeklySnapshot?.struggling_habits && weeklySnapshot.struggling_habits.length > 0 && (
+                <div className="flex items-center text-yellow-400">
+                  <Activity className="w-4 h-4 mr-2" />
+                  <span className="text-sm">{weeklySnapshot.struggling_habits.length} habit(s) need attention</span>
+                </div>
+              )}
+              {weeklySnapshot?.completion_percentage < 70 && (
+                <div className="flex items-center text-yellow-400">
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  <span className="text-sm">Focus on consistency this week</span>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Forward Focus */}
+        {weeklyFocus && (
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-6">
+            <h2 className="text-2xl font-bold text-white flex items-center mb-4">
+              <Target className="w-6 h-6 mr-2 text-purple-400" />
+              Forward Focus
+            </h2>
+            
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <h3 className="text-lg font-semibold text-white mb-2">{weeklyFocus.focus_title}</h3>
+              <p className="text-blue-200 text-sm mb-4">{weeklyFocus.focus_description}</p>
+              
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-blue-200">
+                  Target: {weeklyFocus.target_completion_rate}% completion rate
+                </div>
+                <Button className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border-purple-500/30">
+                  Plan Week
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          </Card>
         )}
-
-        {activeTab === 'insights-engine' && (
-          <HabitInsightsEngine 
-            userId="demo-user"
-            habits={habits} 
-            checkins={checkins} 
-            metrics={[]} // Mock metrics for now
-          />
-        )}
-
-        {activeTab === 'analytics' && (
-          <HabitAnalytics habits={habits} checkins={checkins} />
-        )}
-
-        {activeTab === 'ai-insights' && (
-          <AIHabitRecommendations 
-            habits={habits} 
-            checkins={checkins} 
-            onApplyRecommendation={handleApplyRecommendation}
-          />
-        )}
-
-        {activeTab === 'advanced-insights' && (
-          <AdvancedHabitInsights 
-            habits={habits} 
-            checkins={checkins} 
-          />
-        )}
-
-        {activeTab === 'notifications' && (
-          <SmartNotifications 
-            habits={habits} 
-            checkins={checkins} 
-            onDismiss={(id) => console.log('Dismiss notification:', id)}
-            onMarkRead={(id) => console.log('Mark notification read:', id)}
-          />
-        )}
-
-        {activeTab === 'trends' && (
-          <AdvancedTrendAnalysis habits={habits} checkins={checkins} />
-        )}
-
-        {activeTab === 'social' && (
-          <SocialAccountability habits={habits} checkins={checkins} />
-        )}
-
-        {activeTab === 'ai-personalization' && (
-          <AIPersonalization habits={habits} checkins={checkins} />
-        )}
-
-        {activeTab === 'adaptive-learning' && (
-          <AdaptiveLearning habits={habits} checkins={checkins} />
-        )}
-
-        {activeTab === 'predictive' && (
-          <PredictiveAnalytics habits={habits} checkins={checkins} />
-        )}
-
-
       </div>
     </div>
   );
 }
-

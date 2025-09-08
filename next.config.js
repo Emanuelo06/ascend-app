@@ -13,8 +13,8 @@ const nextConfig = {
   // External packages for server runtime (replaces experimental.serverComponentsExternalPackages)
   serverExternalPackages: ['@supabase/supabase-js'],
 
-  // Typed routes (temporarily disabled to investigate params runtime error)
-  // typedRoutes: true,
+  // Typed routes
+  typedRoutes: true,
 
   // PWA Configuration - Headers moved to vercel.json for production
   async headers() {
@@ -139,8 +139,8 @@ const nextConfig = {
   // Powered by header
   poweredByHeader: false,
 
-  // React strict mode (temporarily disabled to debug params error)
-  reactStrictMode: false,
+  // React strict mode
+  reactStrictMode: true,
 
   // SWC minification is enabled by default in Next.js 13+
 

@@ -349,6 +349,288 @@ export class AICoachingEngine {
   }
 
   /**
+   * Generate coaching response for various session types
+   */
+  public async generateCoachingResponse(
+    userId: string,
+    message: string,
+    sessionType: string,
+    context?: string
+  ): Promise<{
+    message: string;
+    actionItems: string[];
+    sessionType: string;
+    confidence: number;
+  }> {
+    try {
+      // Generate appropriate response based on session type
+      let response: string;
+      let actionItems: string[] = [];
+      let confidence = 0.8;
+
+      switch (sessionType) {
+        case 'goal_setting':
+          response = this.generateGoalSettingResponse(message, context);
+          actionItems = this.generateGoalSettingActionItems(message);
+          confidence = 0.9;
+          break;
+        
+        case 'daily_motivation':
+          response = this.generateMotivationResponse(message);
+          actionItems = this.generateMotivationActionItems();
+          confidence = 0.85;
+          break;
+        
+        case 'habit_analysis':
+          response = this.generateHabitAnalysisResponse(message);
+          actionItems = this.generateHabitAnalysisActionItems();
+          confidence = 0.8;
+          break;
+        
+        case 'crisis_support':
+          response = this.generateCrisisSupportResponse(message);
+          actionItems = this.generateCrisisSupportActionItems();
+          confidence = 0.95;
+          break;
+        
+        case 'spiritual_guidance':
+          response = this.generateSpiritualGuidanceResponse(message);
+          actionItems = this.generateSpiritualGuidanceActionItems();
+          confidence = 0.8;
+          break;
+        
+        case 'workout_planning':
+          response = this.generateWorkoutPlanningResponse(message);
+          actionItems = this.generateWorkoutPlanningActionItems();
+          confidence = 0.85;
+          break;
+        
+        case 'nutrition_advice':
+          response = this.generateNutritionAdviceResponse(message);
+          actionItems = this.generateNutritionAdviceActionItems();
+          confidence = 0.8;
+          break;
+        
+        default:
+          response = this.generateGeneralResponse(message);
+          actionItems = this.generateGeneralActionItems();
+          confidence = 0.7;
+      }
+
+      return {
+        message: response,
+        actionItems,
+        sessionType,
+        confidence
+      };
+
+    } catch (error) {
+      console.error('Error generating coaching response:', error);
+      return {
+        message: "I'm here to help you on your journey. Let's work together to achieve your goals!",
+        actionItems: ["Take a moment to reflect on your current priorities", "Set one small, achievable goal for today"],
+        sessionType,
+        confidence: 0.5
+      };
+    }
+  }
+
+  /**
+   * Generate goal setting response
+   */
+  private generateGoalSettingResponse(message: string, context?: string): string {
+    const responses = [
+      "Based on your interests, I recommend focusing on specific, measurable goals that align with your values. Let's create a roadmap for your transformation journey.",
+      "Great choice of focus areas! I suggest breaking down your goals into smaller, actionable steps that you can track and celebrate along the way.",
+      "Your goal categories show a well-rounded approach to personal development. Let's create SMART goals that will drive meaningful change in your life.",
+      "I can see you're committed to growth across multiple life areas. Let's design goals that build momentum and create lasting positive habits."
+    ];
+    
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  /**
+   * Generate goal setting action items
+   */
+  private generateGoalSettingActionItems(message: string): string[] {
+    return [
+      "Define specific, measurable outcomes for each goal",
+      "Set realistic timelines with milestone checkpoints",
+      "Identify potential obstacles and create contingency plans",
+      "Establish daily habits that support your larger goals",
+      "Create accountability systems to maintain momentum"
+    ];
+  }
+
+  /**
+   * Generate motivation response
+   */
+  private generateMotivationResponse(message: string): string {
+    const responses = [
+      "You have incredible potential within you. Every small step you take today is building the foundation for your future success.",
+      "Remember, progress isn't always linear. Celebrate your wins, learn from setbacks, and keep moving forward with purpose.",
+      "Your commitment to growth is inspiring. Trust the process and believe in your ability to create the life you envision.",
+      "Every expert was once a beginner. You're exactly where you need to be on your journey to becoming your best self."
+    ];
+    
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  /**
+   * Generate motivation action items
+   */
+  private generateMotivationActionItems(): string[] {
+    return [
+      "Write down three things you're grateful for today",
+      "Complete one small action toward your most important goal",
+      "Take a moment to visualize your ideal future self",
+      "Reach out to someone who supports your growth journey"
+    ];
+  }
+
+  /**
+   * Generate habit analysis response
+   */
+  private generateHabitAnalysisResponse(message: string): string {
+    return "Let's analyze your current habits and identify opportunities for improvement. Small changes in daily routines can lead to remarkable transformations over time.";
+  }
+
+  /**
+   * Generate habit analysis action items
+   */
+  private generateHabitAnalysisActionItems(): string[] {
+    return [
+      "Track your current habits for one week",
+      "Identify one habit to eliminate and one to add",
+      "Create a morning routine that sets a positive tone",
+      "Set up habit tracking reminders"
+    ];
+  }
+
+  /**
+   * Generate crisis support response
+   */
+  private generateCrisisSupportResponse(message: string): string {
+    return "I'm here to support you through this challenging time. Remember that seeking help is a sign of strength, and you don't have to face this alone.";
+  }
+
+  /**
+   * Generate crisis support action items
+   */
+  private generateCrisisSupportActionItems(): string[] {
+    return [
+      "Practice deep breathing exercises for 5 minutes",
+      "Reach out to a trusted friend or family member",
+      "Consider speaking with a mental health professional",
+      "Focus on basic self-care: sleep, nutrition, and gentle movement"
+    ];
+  }
+
+  /**
+   * Generate spiritual guidance response
+   */
+  private generateSpiritualGuidanceResponse(message: string): string {
+    return "Your spiritual journey is deeply personal and meaningful. Take time to connect with your values and find peace in the present moment.";
+  }
+
+  /**
+   * Generate spiritual guidance action items
+   */
+  private generateSpiritualGuidanceActionItems(): string[] {
+    return [
+      "Spend 10 minutes in quiet reflection or meditation",
+      "Read an inspiring passage or quote",
+      "Practice gratitude by writing down blessings",
+      "Connect with nature or your spiritual community"
+    ];
+  }
+
+  /**
+   * Generate workout planning response
+   */
+  private generateWorkoutPlanningResponse(message: string): string {
+    return "Physical activity is a cornerstone of overall well-being. Let's create a sustainable exercise plan that fits your lifestyle and goals.";
+  }
+
+  /**
+   * Generate workout planning action items
+   */
+  private generateWorkoutPlanningActionItems(): string[] {
+    return [
+      "Start with 10-15 minutes of daily movement",
+      "Choose activities you enjoy and can maintain",
+      "Schedule workout times in your calendar",
+      "Track your progress and celebrate improvements"
+    ];
+  }
+
+  /**
+   * Generate nutrition advice response
+   */
+  private generateNutritionAdviceResponse(message: string): string {
+    return "Nutrition plays a vital role in your energy, mood, and overall health. Let's focus on nourishing your body with whole, nutritious foods.";
+  }
+
+  /**
+   * Generate nutrition advice action items
+   */
+  private generateNutritionAdviceActionItems(): string[] {
+    return [
+      "Drink a glass of water first thing in the morning",
+      "Include vegetables in at least two meals today",
+      "Plan your meals for the week ahead",
+      "Listen to your body's hunger and fullness cues"
+    ];
+  }
+
+  /**
+   * Generate general response
+   */
+  private generateGeneralResponse(message: string): string {
+    return "I'm here to support you on your personal development journey. Let's work together to create positive change in your life.";
+  }
+
+  /**
+   * Generate general action items
+   */
+  private generateGeneralActionItems(): string[] {
+    return [
+      "Reflect on what you want to achieve this week",
+      "Take one small step toward your goals today",
+      "Practice self-compassion and patience with yourself"
+    ];
+  }
+
+  /**
+   * Get coaching history for a user
+   */
+  public getCoachingHistory(userId: string): any[] {
+    // This would typically fetch from a database
+    // For now, return empty array
+    return [];
+  }
+
+  /**
+   * Get user progress
+   */
+  public getUserProgress(userId: string): any {
+    // This would typically fetch from a database
+    return {
+      totalSessions: 0,
+      lastSessionDate: null,
+      sessionTypes: {}
+    };
+  }
+
+  /**
+   * Generate insights for a user
+   */
+  public generateInsights(userId: string): any[] {
+    // This would typically analyze user data
+    return [];
+  }
+
+  /**
    * Get week end date (Sunday)
    */
   private getWeekEnd(): Date {

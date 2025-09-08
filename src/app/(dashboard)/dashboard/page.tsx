@@ -1,9 +1,10 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { databaseService } from '@/lib/supabase';
 import { 
   ArrowRight, Target, TrendingUp, Heart, Brain, BookOpen,
   Users, DollarSign, Calendar, CheckCircle, Star, Lightbulb, 
@@ -43,7 +44,7 @@ interface Habit {
 }
 
 export default function DashboardPage() {
-  const { user, updateUserData } = useAuth();
+  const { user, updateUserData } = useSupabaseAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -62,30 +63,27 @@ export default function DashboardPage() {
   }, [user]);
 
   const loadDashboardData = async () => {
+    if (!user?.id) return;
+    
     try {
-      // TODO: Replace with real API call once backend is fully set up
-      // const response = await fetch(`/api/dashboard/summary?userId=${user?.id || 'demo-user'}`);
-      // if (response.ok) {
-      //   const data = await response.json();
-      //   // Update dashboard with real data
-      //   // setCurrentStreak(data.data.currentStreak);
-      //   // setTotalHabits(data.data.totalHabits);
-      //   // etc.
-      // }
+      console.log('🔄 Loading dashboard data for user:', user.id);
       
-      // Load user's actual goals from onboarding
-      const userGoals = user?.goals || [];
-      const mockGoals: Goal[] = userGoals.map((goal, index) => ({
-        id: `goal-${index}`,
-        title: goal,
-        category: 'personal',
-        progress: 0, // Start at 0
-        targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 90 days from now
-        status: 'active',
-        priority: 'high'
+      // Load real goals from database
+      const dbGoals = await databaseService.getGoals(user.id);
+      console.log('📊 Loaded goals:', dbGoals.length);
+      
+      // Convert database goals to dashboard format
+      const dashboardGoals: Goal[] = dbGoals.map(goal => ({
+        id: goal.id,
+        title: goal.title,
+        category: goal.category,
+        progress: 0, // TODO: Calculate actual progress
+        targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        status: goal.state as 'active' | 'completed' | 'paused',
+        priority: goal.priority === 1 ? 'high' : goal.priority === 2 ? 'medium' : 'low'
       }));
 
-      setGoals(mockGoals);
+      setGoals(dashboardGoals);
 
     // Generate daily recommendations based on user's goals
     const recommendations: DailyRecommendation[] = [
@@ -117,14 +115,29 @@ export default function DashboardPage() {
 
     setDailyRecommendations(recommendations);
 
-    // Mock habits data
-    const mockHabits: Habit[] = [
-      { id: '1', title: 'Morning Prayer', completed: true, streak: 7, category: 'spiritual' },
-      { id: '2', title: '30-Minute Workout', completed: false, streak: 3, category: 'physical' },
-      { id: '3', title: 'Evening Reading', completed: false, streak: 5, category: 'mental' },
-      { id: '4', title: 'Hydration Check', completed: true, streak: 12, category: 'physical' }
-    ];
-    setHabits(mockHabits);
+      // Load real habits from database
+      const dbHabits = await databaseService.getHabits(user.id);
+      console.log('🔄 Loaded habits:', dbHabits.length);
+      
+      // Load habit check-ins for today
+      const today = new Date().toISOString().split('T')[0];
+      const todayCheckins = await databaseService.getHabitCheckins(user.id, undefined, today);
+      
+      // Convert database habits to dashboard format
+      const dashboardHabits: Habit[] = dbHabits.map(habit => {
+        const todayCheckin = todayCheckins.find(checkin => checkin.habit_id === habit.id);
+        return {
+          id: habit.id,
+          title: habit.title,
+          category: habit.metadata?.category || 'general',
+          streak: 0, // TODO: Calculate actual streak
+          completed: todayCheckin?.completed || false,
+          target: habit.cadence?.type || 'daily',
+          xpReward: habit.difficulty * 25
+        };
+      });
+
+      setHabits(dashboardHabits);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       // Fallback to empty data if there's an error
@@ -202,8 +215,7 @@ export default function DashboardPage() {
 
   const quickActions = [
     { name: 'Daily Check-in', href: '/daily', icon: Calendar, color: 'from-blue-400 to-blue-600' },
-    { name: 'AI Analytics', href: '/analytics', icon: Brain, color: 'from-purple-400 to-pink-600' },
-    { name: 'Track Progress', href: '/progress', icon: TrendingUpIcon, color: 'from-green-400 to-green-600' },
+    { name: 'Analytics & Progress', href: '/analytics', icon: BarChart3, color: 'from-purple-400 to-pink-600' },
     { name: 'Set Goals', href: '/challenges', icon: Target, color: 'from-purple-400 to-purple-600' },
     { name: 'Workout Plan', href: '/workouts', icon: HeartIcon, color: 'from-red-400 to-red-600' },
     { name: 'Spiritual Growth', href: '/spiritual', icon: BookOpenIcon, color: 'from-indigo-400 to-indigo-600' },

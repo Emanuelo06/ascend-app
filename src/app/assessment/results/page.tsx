@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   TrendingUp, 
@@ -61,7 +61,7 @@ interface DimensionData {
 }
 
 function AssessmentResultsContent() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [results, setResults] = useState<AssessmentResult | null>(null);

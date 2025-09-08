@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   BookOpen, 
@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export default function AssessmentWelcomePage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
   const [isStarting, setIsStarting] = useState(false);
 

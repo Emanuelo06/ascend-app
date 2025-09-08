@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
+import { databaseService } from '@/lib/supabase';
 import { 
   Target, Heart, Brain, Zap, Users, DollarSign, Palette, BookOpen,
   CheckCircle, ArrowRight, Star, Lightbulb, TrendingUp, Calendar,
@@ -33,11 +34,105 @@ interface UserPreferences {
 }
 
 export default function GoalsOnboardingPage() {
-  const { user, updateUserData } = useAuth();
+  const { user, updateUserData } = useSupabaseAuth();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isGeneratingGoals, setIsGeneratingGoals] = useState(false);
   const MAX_GOALS = 8; // Maximum number of goals user can have
+
+  // Helper functions for goal generation
+  const generateGoalTitle = (category: string, index: number): string => {
+    const titles = {
+      physical: [
+        'Build Consistent Exercise Routine',
+        'Improve Physical Fitness',
+        'Develop Healthy Eating Habits',
+        'Enhance Sleep Quality',
+        'Increase Daily Movement'
+      ],
+      mental: [
+        'Develop Mindfulness Practice',
+        'Improve Focus and Concentration',
+        'Learn New Skills',
+        'Reduce Stress and Anxiety',
+        'Enhance Mental Clarity'
+      ],
+      spiritual: [
+        'Deepen Spiritual Connection',
+        'Practice Daily Gratitude',
+        'Develop Prayer Routine',
+        'Study Sacred Texts',
+        'Cultivate Inner Peace'
+      ],
+      relational: [
+        'Strengthen Family Relationships',
+        'Build Meaningful Friendships',
+        'Improve Communication Skills',
+        'Practice Active Listening',
+        'Show More Love and Kindness'
+      ],
+      financial: [
+        'Build Emergency Fund',
+        'Improve Financial Literacy',
+        'Reduce Unnecessary Expenses',
+        'Increase Income Streams',
+        'Plan for Future Goals'
+      ],
+      habits: [
+        'Establish Morning Routine',
+        'Create Evening Wind-down',
+        'Build Consistent Habits',
+        'Eliminate Bad Habits',
+        'Develop Productive Systems'
+      ]
+    };
+    
+    const categoryTitles = titles[category as keyof typeof titles] || titles.habits;
+    return categoryTitles[index % categoryTitles.length];
+  };
+
+  const generateMilestones = (category: string): string[] => {
+    const milestones = {
+      physical: [
+        'Set up workout schedule',
+        'Track daily activity',
+        'Complete first month',
+        'Achieve fitness milestone'
+      ],
+      mental: [
+        'Start daily practice',
+        'Track progress weekly',
+        'Complete first month',
+        'Master new techniques'
+      ],
+      spiritual: [
+        'Establish daily practice',
+        'Deepen understanding',
+        'Apply teachings daily',
+        'Share with others'
+      ],
+      relational: [
+        'Identify key relationships',
+        'Schedule regular time',
+        'Practice new skills',
+        'Strengthen connections'
+      ],
+      financial: [
+        'Set specific targets',
+        'Track expenses',
+        'Achieve first milestone',
+        'Build sustainable habits'
+      ],
+      habits: [
+        'Define clear routine',
+        'Track daily progress',
+        'Complete first week',
+        'Make it automatic'
+      ]
+    };
+    
+    return milestones[category as keyof typeof milestones] || milestones.habits;
+  };
   
   const [goals, setGoals] = useState<Goal[]>([
     {
@@ -106,20 +201,32 @@ export default function GoalsOnboardingPage() {
   const getSelectedGoalsCount = () => goals.filter(goal => goal.selected).length;
 
   const canProceed = () => {
+    const selectedCount = getSelectedGoalsCount();
+    const hasCommitment = !!userPreferences.commitmentLevel;
+    const hasAccountability = !!userPreferences.accountabilityPreference;
+    
+    console.log('🔍 canProceed check:', {
+      currentStep,
+      selectedCount,
+      hasCommitment,
+      hasAccountability
+    });
+    
     if (currentStep === 1) {
-      return getSelectedGoalsCount() >= 1;
+      return selectedCount >= 1;
     } else if (currentStep === 2) {
-      return getSelectedGoalsCount() >= 1 && 
-             userPreferences.commitmentLevel && 
-             userPreferences.accountabilityPreference;
+      return selectedCount >= 1 && hasCommitment && hasAccountability;
     } else {
-      return getSelectedGoalsCount() >= 1 && 
-             userPreferences.commitmentLevel && 
-             userPreferences.accountabilityPreference;
+      return selectedCount >= 1 && hasCommitment && hasAccountability;
     }
   };
 
   const handleNext = () => {
+    console.log('🔄 handleNext called, currentStep:', currentStep);
+    console.log('🔍 canProceed():', canProceed());
+    console.log('🔍 selectedGoalsCount:', getSelectedGoalsCount());
+    console.log('🔍 userPreferences:', userPreferences);
+    
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -128,21 +235,68 @@ export default function GoalsOnboardingPage() {
   };
 
   const handleSaveAndContinue = async () => {
+    if (!user?.id) {
+      console.error('No user ID available');
+      return;
+    }
+
     try {
-      // Save selected goals to user profile
-      const selectedGoals = goals.filter(g => g.selected).map(g => g.title);
+      console.log('🔄 Saving onboarding data for user:', user.id);
+      
+      // Save selected goals to database
+      const selectedGoals = goals.filter(g => g.selected);
+      console.log('📊 Selected goals:', selectedGoals.length);
+      
+      // Try to save goals to database
+      try {
+        for (const goal of selectedGoals) {
+          const goalData = {
+            user_id: user.id,
+            title: goal.title,
+            purpose: goal.description,
+            target_type: 'milestone' as const,
+            target_value: { type: 'completion', value: 1 },
+            category: goal.category,
+            priority: goal.priority === 'high' ? 1 : goal.priority === 'medium' ? 2 : 3,
+            state: 'active' as const,
+            health: 'green' as const,
+            metadata: { source: 'onboarding', custom: goal.custom }
+          };
+          
+          await databaseService.createGoal(goalData);
+        }
+        console.log('✅ Goals saved to database');
+      } catch (goalError) {
+        console.error('❌ Goals save failed:', goalError);
+        console.log('🔄 Continuing with local storage...');
+      }
+      
+      // Try to update user profile
+      try {
+        await databaseService.updateUserProfile(user.id, {
+          onboarding_completed: true
+        });
+        console.log('✅ User profile updated in database');
+      } catch (profileError) {
+        console.error('❌ Profile update failed:', profileError);
+        console.log('🔄 Continuing with local update...');
+      }
+      
+      // Update local user data regardless of database success
       updateUserData({
-        goals: selectedGoals,
+        goals: selectedGoals.map(g => g.title),
         onboarding_completed: true
       });
       
-      console.log('Saving goals:', selectedGoals);
-      console.log('Saving preferences:', userPreferences);
+      console.log('✅ Onboarding completed successfully');
+      console.log('📊 Selected goals:', selectedGoals.length);
+      console.log('⚙️ Saved preferences:', userPreferences);
       
-      // Redirect to dashboard
-      router.push('/dashboard');
+      // Redirect to assessment
+      router.push('/assessment');
     } catch (error) {
-      console.error('Error saving goals:', error);
+      console.error('❌ Error saving onboarding data:', error);
+      alert('There was an error saving your goals. Please try again.');
     }
   };
 
@@ -153,8 +307,6 @@ export default function GoalsOnboardingPage() {
       spiritual: <Heart className="h-5 w-5" />,
       financial: <DollarSign className="h-5 w-5" />,
       relational: <Users className="h-5 w-5" />,
-      creative: <Palette className="h-5 w-5" />,
-      legacy: <BookOpen className="h-5 w-5" />,
       mental: <Brain className="h-5 w-5" />
     };
     return icons[category] || <Target className="h-5 w-5" />;
@@ -328,21 +480,27 @@ export default function GoalsOnboardingPage() {
                         
                         // Parse the AI response to extract goals
                         const aiResponse = data.coaching?.message || '';
+                        const actionItems = data.coaching?.actionItems || [];
                         
-                        // Create new goals based on the AI response
+                        // Create new goals based on the AI response and action items
                         const newGoals: Goal[] = [];
+                        const categories = selectedCategories.length > 0 ? selectedCategories : ['physical', 'mental', 'spiritual', 'relational', 'financial'];
+                        
                         for (let i = 0; i < goalsToAdd; i++) {
+                          const category = categories[i % categories.length];
+                          const actionItem = actionItems[i] || `Focus on ${category} development`;
+                          
                           const newGoal: Goal = {
                             id: Date.now().toString() + Math.random(),
-                            title: `AI Generated Goal ${i + 1}`,
-                            description: `AI-powered personal development goal based on your ${selectedCategories.join(', ')} interests`,
-                            category: selectedCategories[i % selectedCategories.length] || 'habits',
+                            title: generateGoalTitle(category, i + 1),
+                            description: actionItem,
+                            category: category,
                             priority: 'medium',
                             timeline: '3-6 months',
                             selected: false,
                             custom: false,
                             progress: 0,
-                            milestones: ['Set milestone 1', 'Set milestone 2', 'Track progress']
+                            milestones: generateMilestones(category)
                           };
                           newGoals.push(newGoal);
                         }
@@ -351,6 +509,28 @@ export default function GoalsOnboardingPage() {
                         setGoals(prev => [...prev, ...newGoals]);
                       } else {
                         console.error('API response not ok:', response.status);
+                        // Fallback: create basic goals even if AI fails
+                        const newGoals: Goal[] = [];
+                        const categories = selectedCategories.length > 0 ? selectedCategories : ['physical', 'mental', 'spiritual'];
+                        
+                        for (let i = 0; i < goalsToAdd; i++) {
+                          const category = categories[i % categories.length];
+                          const newGoal: Goal = {
+                            id: Date.now().toString() + Math.random(),
+                            title: generateGoalTitle(category, i + 1),
+                            description: `Focus on ${category} development and growth`,
+                            category: category,
+                            priority: 'medium',
+                            timeline: '3-6 months',
+                            selected: false,
+                            custom: false,
+                            progress: 0,
+                            milestones: generateMilestones(category)
+                          };
+                          newGoals.push(newGoal);
+                        }
+                        
+                        setGoals(prev => [...prev, ...newGoals]);
                       }
                     } catch (error) {
                       console.error('Error generating goals:', error);

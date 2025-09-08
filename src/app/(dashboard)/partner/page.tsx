@@ -1,11 +1,11 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useRouter } from 'next/navigation';
 import { UsersIcon, ArrowLeftIcon, UserPlusIcon } from 'lucide-react';
 
 export default function PartnerPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const router = useRouter();
 
   if (!user) {

@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "build:analyze": "ANALYZE=true npm run build",
+    "vercel-build": "npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
