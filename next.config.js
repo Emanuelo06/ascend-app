@@ -63,33 +63,43 @@ const nextConfig = {
         tls: false,
       };
 
-      // PWA manifest
-      const CopyWebpackPlugin = require('copy-webpack-plugin');
-      config.plugins.push(
-        new CopyWebpackPlugin({
-          patterns: [
-            {
-              from: 'public/manifest.json',
-              to: 'manifest.json',
-            },
-            {
-              from: 'public/sw.js',
-              to: 'sw.js',
-            },
-          ],
-        })
-      );
+      // PWA manifest - only in development or when explicitly enabled
+      if (dev || process.env.ENABLE_PWA_COPY === 'true') {
+        try {
+          const CopyWebpackPlugin = require('copy-webpack-plugin');
+          config.plugins.push(
+            new CopyWebpackPlugin({
+              patterns: [
+                {
+                  from: 'public/manifest.json',
+                  to: 'manifest.json',
+                },
+                {
+                  from: 'public/sw.js',
+                  to: 'sw.js',
+                },
+              ],
+            })
+          );
+        } catch (error) {
+          console.warn('CopyWebpackPlugin not available, skipping PWA file copying');
+        }
+      }
     }
 
     // Bundle analyzer (optional)
     if (process.env.ANALYZE === 'true') {
-      const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-      config.plugins.push(
-        new BundleAnalyzerPlugin({
-          analyzerMode: 'static',
-          openAnalyzer: false,
-        })
-      );
+      try {
+        const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+        config.plugins.push(
+          new BundleAnalyzerPlugin({
+            analyzerMode: 'static',
+            openAnalyzer: false,
+          })
+        );
+      } catch (error) {
+        console.warn('BundleAnalyzerPlugin not available, skipping bundle analysis');
+      }
     }
 
     return config;
